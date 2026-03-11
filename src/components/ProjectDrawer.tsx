@@ -16,7 +16,8 @@ import {
   Trash2,
   Loader2,
   XCircle,
-  CircleDashed
+  CircleDashed,
+  Edit2
 } from "lucide-react";
 import { cn } from "./Layout";
 import toast from "react-hot-toast";
@@ -54,6 +55,8 @@ export const ProjectDrawer: React.FC<{
   const project = initialProject ? projects.find(p => p.id === initialProject.id) || initialProject : null;
 
   const [isEditingClient, setIsEditingClient] = useState(false);
+  const [isEditingCoordinator, setIsEditingCoordinator] = useState(false);
+  const [isEditingTeam, setIsEditingTeam] = useState(false);
   const [editedProject, setEditedProject] = useState<Project | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [nextStage, setNextStage] = useState<Stage | null>(null);
@@ -87,6 +90,8 @@ export const ProjectDrawer: React.FC<{
       setIsCreatingWorkspace(false);
     }
   }, [project, projectMembers]);
+
+  const canEditAnyStage = ["owner", "admin", "coord_geral"].includes(currentUser?.role || "");
 
   if (!project || !editedProject) return null;
 
@@ -628,18 +633,18 @@ export const ProjectDrawer: React.FC<{
               <h3 className="text-sm font-semibold text-[var(--color-v4-text-muted)] uppercase tracking-wider flex items-center gap-2">
                 <Building2 size={16} /> Dados do Cliente
               </h3>
-              {!isPastAguardandoComercial && (
+              {(!isPastAguardandoComercial || canEditAnyStage) && (
                 <button
                   onClick={() => setIsEditingClient(!isEditingClient)}
-                  className="text-xs text-[var(--color-v4-red)] hover:underline"
+                  className="text-xs text-[var(--color-v4-red)] hover:underline flex items-center gap-1"
                 >
-                  {isEditingClient ? "Cancelar Edição" : "Editar"}
+                  {isEditingClient ? "Cancelar Edição" : <><Edit2 size={12} /> Editar</>}
                 </button>
               )}
             </div>
 
             <div className="bg-[var(--color-v4-card)] border border-[var(--color-v4-border)] rounded-xl p-4">
-              {isEditingClient && !isPastAguardandoComercial ? (
+              {isEditingClient && (!isPastAguardandoComercial || canEditAnyStage) ? (
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs text-slate-400 mb-1">Nome do Cliente</label>
@@ -757,19 +762,58 @@ export const ProjectDrawer: React.FC<{
           {/* Coordenador Designado */}
           {isPastCoordenador && (
             <section>
-              <h3 className="text-sm font-semibold text-[var(--color-v4-text-muted)] uppercase tracking-wider flex items-center gap-2 mb-4">
-                <Users size={16} /> Coordenador do Projeto
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-[var(--color-v4-text-muted)] uppercase tracking-wider flex items-center gap-2">
+                  <Users size={16} /> Coordenador do Projeto
+                </h3>
+                {canEditAnyStage && (
+                  <button
+                    onClick={() => setIsEditingCoordinator(!isEditingCoordinator)}
+                    className="text-xs text-[var(--color-v4-red)] hover:underline flex items-center gap-1"
+                  >
+                    {isEditingCoordinator ? "Cancelar" : <><Edit2 size={12} /> Alterar</>}
+                  </button>
+                )}
+              </div>
               <div className="bg-[var(--color-v4-card)] rounded-xl border border-[var(--color-v4-border)] p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-white text-xs font-bold">
-                    {getMemberName(project.assignedCoordinatorId).charAt(0)}
+                {isEditingCoordinator ? (
+                  <div className="space-y-4">
+                    <div>
+                      <select
+                        value={editedProject.assignedCoordinatorId || ""}
+                        onChange={(e) => {
+                          setEditedProject({ ...editedProject, assignedCoordinatorId: e.target.value });
+                        }}
+                        className="w-full bg-[var(--color-v4-bg)] border border-[var(--color-v4-border)] rounded-lg p-2.5 text-white focus:ring-2 focus:ring-[var(--color-v4-red)]"
+                      >
+                        <option value="">Selecione...</option>
+                        {members.filter((m) => m.role === "coord_equipe" && m.isActive).map((m) => (
+                          <option key={m.id} value={m.id}>{m.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      onClick={() => {
+                        updateProject(project.id, { assignedCoordinatorId: editedProject.assignedCoordinatorId });
+                        setIsEditingCoordinator(false);
+                        toast.success("Coordenador alterado!");
+                      }}
+                      className="w-full py-2 bg-[var(--color-v4-red)] hover:bg-[var(--color-v4-red-hover)] text-white rounded-lg text-xs font-medium transition-colors"
+                    >
+                      Salvar Coordenador
+                    </button>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">{getMemberName(project.assignedCoordinatorId)}</p>
-                    <p className="text-xs text-slate-400">Coordenador de Equipe</p>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-white text-xs font-bold">
+                      {getMemberName(project.assignedCoordinatorId).charAt(0)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-white">{getMemberName(project.assignedCoordinatorId)}</p>
+                      <p className="text-xs text-slate-400">Coordenador de Equipe</p>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </section>
           )}
@@ -815,26 +859,100 @@ export const ProjectDrawer: React.FC<{
 
           {isPastEquipe && (
             <section>
-              <h3 className="text-sm font-semibold text-[var(--color-v4-text-muted)] uppercase tracking-wider flex items-center gap-2 mb-4">
-                <Users size={16} /> Equipe Designada
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-[var(--color-v4-text-muted)] uppercase tracking-wider flex items-center gap-2">
+                  <Users size={16} /> Equipe Designada
+                </h3>
+                {canEditAnyStage && (
+                  <button
+                    onClick={() => setIsEditingTeam(!isEditingTeam)}
+                    className="text-xs text-[var(--color-v4-red)] hover:underline flex items-center gap-1"
+                  >
+                    {isEditingTeam ? "Cancelar" : <><Edit2 size={12} /> Alterar</>}
+                  </button>
+                )}
+              </div>
               <div className="bg-[var(--color-v4-card)] rounded-xl border border-[var(--color-v4-border)] p-4 space-y-3">
-                <div className="flex justify-between items-center border-b border-[var(--color-v4-border-strong)] pb-2 last:border-0 last:pb-0">
-                  <span className="text-xs text-slate-400">Gestor de Projetos:</span>
-                  <span className="text-sm text-white font-medium text-right">{getMemberName(assignedTeam.gestor_projetos)}</span>
-                </div>
-                <div className="flex justify-between items-center border-b border-[var(--color-v4-border-strong)] pb-2 last:border-0 last:pb-0">
-                  <span className="text-xs text-slate-400">Designer:</span>
-                  <span className={cn("text-sm text-right", assignedTeam.designer ? "text-white font-medium" : "text-slate-500 italic")}>{getMemberName(assignedTeam.designer)}</span>
-                </div>
-                <div className="flex justify-between items-center border-b border-[var(--color-v4-border-strong)] pb-2 last:border-0 last:pb-0">
-                  <span className="text-xs text-slate-400">Gestor de Tráfego:</span>
-                  <span className={cn("text-sm text-right", assignedTeam.gestor_trafego ? "text-white font-medium" : "text-slate-500 italic")}>{getMemberName(assignedTeam.gestor_trafego)}</span>
-                </div>
-                <div className="flex justify-between items-center border-b border-[var(--color-v4-border-strong)] pb-2 last:border-0 last:pb-0">
-                  <span className="text-xs text-slate-400">Copywriter:</span>
-                  <span className={cn("text-sm text-right", assignedTeam.copywriter ? "text-white font-medium" : "text-slate-500 italic")}>{getMemberName(assignedTeam.copywriter)}</span>
-                </div>
+                {isEditingTeam ? (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs text-[var(--color-v4-text-muted)] mb-1">Gestor de Projetos</label>
+                      <select value={teamSelection.gestor_projetos} onChange={(e) => setTeamSelection({ ...teamSelection, gestor_projetos: e.target.value })} className="w-full bg-[var(--color-v4-bg)] border border-[var(--color-v4-border)] rounded-lg p-2 text-sm text-white focus:ring-1 focus:ring-[var(--color-v4-red)]">
+                        <option value="">Selecione...</option>
+                        {members.filter((m) => m.role === "gestor_projetos" && m.isActive).map((m) => (<option key={m.id} value={m.id}>{m.name}</option>))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[var(--color-v4-text-muted)] mb-1">Designer</label>
+                      <select value={teamSelection.designer} onChange={(e) => setTeamSelection({ ...teamSelection, designer: e.target.value })} className="w-full bg-[var(--color-v4-bg)] border border-[var(--color-v4-border)] rounded-lg p-2 text-sm text-white focus:ring-1 focus:ring-[var(--color-v4-red)]">
+                        <option value="">Selecione...</option>
+                        {members.filter((m) => m.role === "designer" && m.isActive).map((m) => (<option key={m.id} value={m.id}>{m.name}</option>))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[var(--color-v4-text-muted)] mb-1">Gestor de Tráfego</label>
+                      <select value={teamSelection.gestor_trafego} onChange={(e) => setTeamSelection({ ...teamSelection, gestor_trafego: e.target.value })} className="w-full bg-[var(--color-v4-bg)] border border-[var(--color-v4-border)] rounded-lg p-2 text-sm text-white focus:ring-1 focus:ring-[var(--color-v4-red)]">
+                        <option value="">Selecione...</option>
+                        {members.filter((m) => m.role === "gestor_trafego" && m.isActive).map((m) => (<option key={m.id} value={m.id}>{m.name}</option>))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[var(--color-v4-text-muted)] mb-1">Copywriter</label>
+                      <select value={teamSelection.copywriter} onChange={(e) => setTeamSelection({ ...teamSelection, copywriter: e.target.value })} className="w-full bg-[var(--color-v4-bg)] border border-[var(--color-v4-border)] rounded-lg p-2 text-sm text-white focus:ring-1 focus:ring-[var(--color-v4-red)]">
+                        <option value="">Selecione...</option>
+                        {members.filter((m) => m.role === "copywriter" && m.isActive).map((m) => (<option key={m.id} value={m.id}>{m.name}</option>))}
+                      </select>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const currentTeam = projectMembers.filter((pm) => pm.projectId === project.id);
+                        currentTeam.forEach((pm) => removeProjectMember(pm.id));
+                
+                        const roles: { [key: string]: string } = {
+                          gestor_projetos: teamSelection.gestor_projetos,
+                          designer: teamSelection.designer,
+                          gestor_trafego: teamSelection.gestor_trafego,
+                          copywriter: teamSelection.copywriter,
+                        };
+                
+                        Object.entries(roles).forEach(([role, memberId]) => {
+                          if (memberId) {
+                            addProjectMember({
+                              id: Math.random().toString(36).substring(7),
+                              projectId: project.id,
+                              memberId,
+                              roleInProject: role as any,
+                            });
+                          }
+                        });
+                        setIsEditingTeam(false);
+                        toast.success("Equipe alterada com sucesso!");
+                      }}
+                      className="w-full py-2 bg-[var(--color-v4-red)] hover:bg-[var(--color-v4-red-hover)] text-white rounded-lg text-xs font-medium transition-colors"
+                    >
+                      Salvar Equipe
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-center border-b border-[var(--color-v4-border-strong)] pb-2 last:border-0 last:pb-0">
+                      <span className="text-xs text-slate-400">Gestor de Projetos:</span>
+                      <span className="text-sm text-white font-medium text-right">{getMemberName(assignedTeam.gestor_projetos)}</span>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-[var(--color-v4-border-strong)] pb-2 last:border-0 last:pb-0">
+                      <span className="text-xs text-slate-400">Designer:</span>
+                      <span className={cn("text-sm text-right", assignedTeam.designer ? "text-white font-medium" : "text-slate-500 italic")}>{getMemberName(assignedTeam.designer)}</span>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-[var(--color-v4-border-strong)] pb-2 last:border-0 last:pb-0">
+                      <span className="text-xs text-slate-400">Gestor de Tráfego:</span>
+                      <span className={cn("text-sm text-right", assignedTeam.gestor_trafego ? "text-white font-medium" : "text-slate-500 italic")}>{getMemberName(assignedTeam.gestor_trafego)}</span>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-[var(--color-v4-border-strong)] pb-2 last:border-0 last:pb-0">
+                      <span className="text-xs text-slate-400">Copywriter:</span>
+                      <span className={cn("text-sm text-right", assignedTeam.copywriter ? "text-white font-medium" : "text-slate-500 italic")}>{getMemberName(assignedTeam.copywriter)}</span>
+                    </div>
+                  </>
+                )}
               </div>
             </section>
           )}
