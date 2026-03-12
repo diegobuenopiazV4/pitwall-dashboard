@@ -844,8 +844,8 @@ export const ProjectDrawer: React.FC<{
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="col-span-1 sm:col-span-2">
                       <p className="text-xs text-[var(--color-v4-text-muted)] mb-1">Produto(s)</p>
                       {project.produtosEscopo && project.produtosEscopo.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
@@ -864,9 +864,15 @@ export const ProjectDrawer: React.FC<{
                       </p>
                     </div>
                     <div>
-                       <p className="text-xs text-[var(--color-v4-text-muted)] mb-1">Início / Pgto</p>
+                       <p className="text-xs text-[var(--color-v4-text-muted)] mb-1">Início do Projeto</p>
                        <p className="text-sm font-medium text-white">
-                         {project.dataInicioEscopo ? new Date(project.dataInicioEscopo).toLocaleDateString('pt-BR') : '—'} / {project.dataPgtoEscopo ? new Date(project.dataPgtoEscopo).toLocaleDateString('pt-BR') : '—'}
+                         {project.dataInicioEscopo ? new Date(project.dataInicioEscopo).toLocaleDateString('pt-BR') : '—'}
+                       </p>
+                    </div>
+                    <div>
+                       <p className="text-xs text-[var(--color-v4-text-muted)] mb-1">1º Pagamento</p>
+                       <p className="text-sm font-medium text-white">
+                         {project.dataPgtoEscopo ? new Date(project.dataPgtoEscopo).toLocaleDateString('pt-BR') : '—'}
                        </p>
                     </div>
                   </div>
@@ -933,8 +939,8 @@ export const ProjectDrawer: React.FC<{
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="col-span-1 sm:col-span-2">
                       <p className="text-xs text-[var(--color-v4-text-muted)] mb-1">Produto(s)</p>
                       {project.produtosRecorrente && project.produtosRecorrente.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
@@ -953,9 +959,15 @@ export const ProjectDrawer: React.FC<{
                       </p>
                     </div>
                     <div>
-                       <p className="text-xs text-[var(--color-v4-text-muted)] mb-1">Início / Pgto</p>
+                       <p className="text-xs text-[var(--color-v4-text-muted)] mb-1">Início do Projeto</p>
                        <p className="text-sm font-medium text-white">
-                         {project.dataInicioRecorrente ? new Date(project.dataInicioRecorrente).toLocaleDateString('pt-BR') : '—'} / {project.dataPgtoRecorrente ? new Date(project.dataPgtoRecorrente).toLocaleDateString('pt-BR') : '—'}
+                         {project.dataInicioRecorrente ? new Date(project.dataInicioRecorrente).toLocaleDateString('pt-BR') : '—'}
+                       </p>
+                    </div>
+                    <div>
+                       <p className="text-xs text-[var(--color-v4-text-muted)] mb-1">1º Pagamento</p>
+                       <p className="text-sm font-medium text-white">
+                         {project.dataPgtoRecorrente ? new Date(project.dataPgtoRecorrente).toLocaleDateString('pt-BR') : '—'}
                        </p>
                     </div>
                   </div>
