@@ -63,6 +63,7 @@ export interface Project {
   linkTranscricao?: string | null;
   observacoes?: string | null;
   contractUrl?: string | null;
+  contractFilename?: string | null;
 
   assignedCoordinatorId?: string;
   assignedById?: string;

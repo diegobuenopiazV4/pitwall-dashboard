@@ -17,7 +17,9 @@ import {
   Loader2,
   XCircle,
   CircleDashed,
-  Edit2
+  Edit2,
+  UploadCloud,
+  FileText
 } from "lucide-react";
 import { cn } from "./Layout";
 import toast from "react-hot-toast";
@@ -63,6 +65,7 @@ export const ProjectDrawer: React.FC<{
   
   // Link states
   const [newLink, setNewLink] = useState("");
+  const [isUploadingContract, setIsUploadingContract] = useState(false);
 
   // Async Workspace creation states
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
@@ -133,6 +136,91 @@ export const ProjectDrawer: React.FC<{
       ...editedProject,
       meetingLinks: currentLinks.filter((_, i) => i !== index),
     });
+  };
+
+  const handleContractUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      toast.error("Apenas arquivos PDF são permitidos.");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("O tamanho máximo permitido é de 10MB.");
+      return;
+    }
+
+    setIsUploadingContract(true);
+    const toastId = toast.loading("Fazendo upload do contrato...");
+
+    try {
+      const { data, error } = await supabase.storage
+        .from('contracts')
+        .upload(`${project.id}/${file.name}`, file, { upsert: true });
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('contracts')
+        .getPublicUrl(`${project.id}/${file.name}`);
+
+      await supabase.from('project').update({
+        contract_url: publicUrl,
+        contract_filename: file.name
+      }).eq('id', project.id);
+
+      updateProject(project.id, {
+        contractUrl: publicUrl,
+        contractFilename: file.name
+      });
+      
+      setEditedProject(prev => ({ ...prev, contractUrl: publicUrl, contractFilename: file.name }));
+
+      toast.success("Contrato anexado com sucesso!", { id: toastId });
+    } catch (error: any) {
+      console.error(error);
+      toast.error("Erro ao fazer upload do contrato.", { id: toastId });
+    } finally {
+      setIsUploadingContract(false);
+      // reset file input
+      e.target.value = "";
+    }
+  };
+
+  const handleRemoveContract = async () => {
+    if (!project.contractFilename) return;
+    
+    setIsUploadingContract(true);
+    const toastId = toast.loading("Removendo contrato...");
+
+    try {
+      const { error } = await supabase.storage
+        .from('contracts')
+        .remove([`${project.id}/${project.contractFilename}`]);
+
+      if (error) throw error;
+
+      await supabase.from('project').update({
+        contract_url: null,
+        contract_filename: null
+      }).eq('id', project.id);
+
+      updateProject(project.id, {
+        contractUrl: null,
+        contractFilename: null
+      });
+
+      setEditedProject(prev => ({ ...prev, contractUrl: null, contractFilename: null }));
+
+      toast.success("Contrato removido com sucesso!", { id: toastId });
+    } catch (error: any) {
+      console.error(error);
+      toast.error("Erro ao remover o contrato.", { id: toastId });
+    } finally {
+      setIsUploadingContract(false);
+    }
   };
 
   const getMemberName = (id: string | null | undefined) => {
@@ -925,27 +1013,52 @@ export const ProjectDrawer: React.FC<{
           <section>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-[var(--color-v4-text-muted)] uppercase tracking-wider flex items-center gap-2">
-                <Building2 size={16} /> Contrato
+                <FileText size={16} /> Contrato
               </h3>
             </div>
             
             <div className="bg-[var(--color-v4-card)] border border-[var(--color-v4-border)] rounded-xl p-4">
-              {isEditingClient && (!isPastAguardandoComercial || canEditAnyStage) ? (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-1">URL do Contrato PDF</label>
-                    <input type="text" placeholder="https://..." value={editedProject.contractUrl || ""} onChange={(e) => setEditedProject({ ...editedProject, contractUrl: e.target.value })} className="w-full p-2 bg-[var(--color-v4-bg)] border border-[var(--color-v4-border)] rounded-md text-sm text-white focus:ring-1 focus:ring-[var(--color-v4-red)]" />
+              <div className="space-y-4">
+                {project.contractUrl ? (
+                  <div className="flex items-center justify-between p-3 border border-[var(--color-v4-border)] rounded-lg bg-[var(--color-v4-bg)]">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="p-2 bg-[var(--color-v4-danger)]/10 text-[var(--color-v4-red)] rounded-lg shrink-0">
+                        <FileText size={20} />
+                      </div>
+                      <div className="truncate pr-4">
+                        <p className="text-sm font-medium text-white truncate">{project.contractFilename || "Contrato Assinado.pdf"}</p>
+                        <p className="text-xs text-[var(--color-v4-text-muted)]">Documento PDF</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <a href={project.contractUrl} target="_blank" rel="noreferrer" className="text-sm bg-slate-800 border border-[var(--color-v4-border)] hover:bg-slate-700 text-white py-1.5 px-3 rounded flex items-center justify-center transition-colors">Visualizar</a>
+                      
+                      {(!isPastAguardandoComercial || canEditAnyStage) && (
+                        <button onClick={handleRemoveContract} disabled={isUploadingContract} className="text-sm bg-[var(--color-v4-red)]/20 hover:bg-[var(--color-v4-red)]/30 text-[var(--color-v4-red)] py-1.5 px-3 rounded flex items-center justify-center transition-colors disabled:opacity-50">
+                          {isUploadingContract ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex flex-col gap-2">
-                    {project.contractUrl ? (
-                       <a href={project.contractUrl} target="_blank" rel="noreferrer" className="text-sm bg-[var(--color-v4-red)] hover:bg-[var(--color-v4-red-hover)] text-white py-1.5 px-3 rounded flex items-center justify-center gap-1 w-fit"><LinkIcon size={14} /> Visualizar PDF do Contrato</a>
-                    ) : <p className="text-sm font-medium text-slate-500">Nenhum contrato anexado</p>}
-                  </div>
-                </div>
-              )}
+                ) : (
+                  (!isPastAguardandoComercial || canEditAnyStage) ? (
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-[var(--color-v4-border)] rounded-lg cursor-pointer hover:border-[var(--color-v4-red)]/50 hover:bg-[var(--color-v4-red)]/5 transition-all relative overflow-hidden">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        {isUploadingContract ? (
+                          <Loader2 size={28} className="text-[var(--color-v4-text-muted)] mb-2 animate-spin" />
+                        ) : (
+                          <UploadCloud size={28} className="text-[var(--color-v4-text-muted)] mb-2" />
+                        )}
+                        <p className="text-sm text-slate-300 font-medium">{isUploadingContract ? "Fazendo upload..." : "Anexar Contrato"}</p>
+                        {!isUploadingContract && <p className="text-xs text-[var(--color-v4-text-muted)] mt-1">PDF até 10MB</p>}
+                      </div>
+                      <input type="file" className="hidden" accept=".pdf" onChange={handleContractUpload} disabled={isUploadingContract} />
+                    </label>
+                  ) : (
+                    <p className="text-sm font-medium text-slate-500">Nenhum contrato anexado</p>
+                  )
+                )}
+              </div>
             </div>
           </section>
           

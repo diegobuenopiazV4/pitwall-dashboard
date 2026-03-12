@@ -148,7 +148,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
           produtosRecorrente: p.produtos_recorrente, valorRecorrente: p.valor_recorrente,
           dataInicioRecorrente: p.data_inicio_recorrente, dataPgtoRecorrente: p.data_pgto_recorrente,
           linkCallVendas: p.link_call_vendas, linkTranscricao: p.link_transcricao,
-          observacoes: p.observacoes, contractUrl: p.contract_url,
+          observacoes: p.observacoes, contractUrl: p.contract_url, contractFilename: p.contract_filename,
           firstPaymentDate: p.first_payment_date, projectStartDate: p.project_start_date,
           assignedCoordinatorId: p.assigned_coordinator_id, assignedById: p.assigned_by_id,
           soldById: p.sold_by_id, soldBy: p.sold_by,
@@ -299,6 +299,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
       if (updates.linkTranscricao !== undefined) payload.link_transcricao = updates.linkTranscricao;
       if (updates.observacoes !== undefined) payload.observacoes = updates.observacoes;
       if (updates.contractUrl !== undefined) payload.contract_url = updates.contractUrl;
+      if (updates.contractFilename !== undefined) payload.contract_filename = updates.contractFilename;
 
       if (updates.meetingLinks !== undefined) payload.meeting_links = updates.meetingLinks;
       if (updates.workspaceStatus !== undefined) payload.workspace_status = updates.workspaceStatus; // this will overwrite instead of patch, you might need to fetch first or let optimistic handle it UI side for now, wait we can just send the patched object
