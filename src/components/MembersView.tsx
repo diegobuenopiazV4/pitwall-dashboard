@@ -146,7 +146,8 @@ export const MembersView: React.FC = () => {
 
           {(currentUser?.role === "owner" ||
             currentUser?.role === "admin" ||
-            currentUser?.role === "coord_geral") && (
+            currentUser?.role === "coord_geral" ||
+            currentUser?.role === "coord_equipe") && (
             <button 
               onClick={() => openModal()}
               className="flex items-center gap-2 px-4 py-2 bg-[var(--color-v4-red)] hover:bg-[var(--color-v4-red-hover)] text-white rounded-xl font-medium transition-colors"
@@ -221,16 +222,18 @@ export const MembersView: React.FC = () => {
                       </button>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {(currentUser?.role === "owner" || currentUser?.role === "admin" || currentUser?.role === "coord_geral") && (
-                        <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-2">
+                        {(currentUser?.role === "owner" || currentUser?.role === "admin" || currentUser?.role === "coord_geral" || currentUser?.role === "coord_equipe") && (
                           <button onClick={() => openModal(member)} className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors">
                             <Edit2 size={16} />
                           </button>
+                        )}
+                        {(currentUser?.role === "owner" || currentUser?.role === "admin") && (
                           <button onClick={() => handleDeletePrompt(member)} className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-900/20 rounded-md transition-colors">
                             <Trash2 size={16} />
                           </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
