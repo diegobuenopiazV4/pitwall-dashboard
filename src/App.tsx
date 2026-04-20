@@ -1,73 +1,78 @@
-import React, { useState } from "react";
-import { AppProvider, useAppStore } from "./store";
-import { LoginView } from "./components/LoginView";
-import { Layout } from "./components/Layout";
-import { KanbanBoard } from "./components/KanbanBoard";
-import { MembersView } from "./components/MembersView";
-import { ProjectsView } from "./components/ProjectsView";
-import { StakeholdersView } from "./components/StakeholdersView";
-import { CompanyView } from "./components/CompanyView";
-import { ProjectDrawer } from "./components/ProjectDrawer";
-import { Project } from "./types";
-import { Toaster } from "react-hot-toast";
+import React, { useEffect } from 'react';
+import { useAppStore } from './stores/app-store';
+import { LoginForm } from './components/auth/LoginForm';
+import { AppLayout } from './components/layout/AppLayout';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useSupabaseSync } from './hooks/useSupabaseSync';
+import { supabase } from './lib/supabase/client';
+import { Toaster } from 'react-hot-toast';
 
-type View = "dashboard" | "projects" | "members" | "stakeholders" | "company";
+const App: React.FC = () => {
+  const { isAuthenticated, isLoading, setAuth, setLoading } = useAppStore();
 
-const MainApp: React.FC = () => {
-  const { currentUser, isLoadingAuth } = useAppStore();
-  const [currentView, setCurrentView] = useState<View>("dashboard");
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  useKeyboardShortcuts();
+  useSupabaseSync();
 
-  if (isLoadingAuth) {
+  useEffect(() => {
+    // Check existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setAuth(session.user.id, session.user.user_metadata?.full_name || session.user.email || '');
+      } else {
+        setLoading(false);
+      }
+    }).catch(() => {
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setAuth(session.user.id, session.user.user_metadata?.full_name || session.user.email || '');
+      } else {
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--color-v4-bg)]">
-         <div className="flex flex-col items-center gap-4">
-           <div className="w-12 h-12 border-4 border-slate-700 border-t-[var(--color-v4-red)] rounded-full animate-spin"></div>
-           <p className="text-slate-400 font-medium">Validando sessão...</p>
-         </div>
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-3 border-slate-700 border-t-red-500 rounded-full animate-spin" />
+          <p className="text-xs text-slate-500">Carregando...</p>
+        </div>
       </div>
     );
   }
 
-  if (!currentUser) {
-    return <LoginView />;
+  if (!isAuthenticated) {
+    return (
+      <>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: { background: '#1a1a24', color: '#e2e8f0', border: '1px solid #334155', fontSize: '12px' },
+          }}
+        />
+        <LoginForm />
+      </>
+    );
   }
 
-  const renderView = () => {
-    switch (currentView) {
-      case "dashboard":
-        return <KanbanBoard onProjectClick={setSelectedProject} />;
-      case "projects":
-        return <ProjectsView onProjectClick={setSelectedProject} />;
-      case "members":
-        return <MembersView />;
-      case "stakeholders":
-        return <StakeholdersView />;
-      case "company":
-        return <CompanyView />;
-      default:
-        return <KanbanBoard onProjectClick={setSelectedProject} />;
-    }
-  };
-
   return (
-    <Layout currentView={currentView} onViewChange={setCurrentView}>
-      {renderView()}
-      {selectedProject && (
-        <ProjectDrawer
-          project={selectedProject}
-          onClose={() => setSelectedProject(null)}
-        />
-      )}
-    </Layout>
+    <>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: { background: '#1a1a24', color: '#e2e8f0', border: '1px solid #334155', fontSize: '12px' },
+        }}
+      />
+      <AppLayout />
+    </>
   );
 };
 
-export default function App() {
-  return (
-    <AppProvider>
-      <Toaster position="top-right" />
-      <MainApp />
-    </AppProvider>
-  );
-}
+export default App;
