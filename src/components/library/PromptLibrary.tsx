@@ -3,7 +3,22 @@ import { X, Sparkles, Search, Tag } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppStore } from '../../stores/app-store';
 import { getTemplatesByAgent, applyPlaceholders, PROMPT_TEMPLATES, type PromptTemplate } from '../../lib/prompts/templates';
+import { QUICK_COMMANDS } from '../../lib/prompts/quick-commands';
 import { AGENTS } from '../../lib/agents/agents-data';
+
+// Merge templates + quick commands na biblioteca
+const MERGED_LIBRARY: PromptTemplate[] = [
+  ...PROMPT_TEMPLATES,
+  ...QUICK_COMMANDS.map((c) => ({
+    id: `qc-${c.id}`,
+    agentId: c.agentId,
+    category: c.category,
+    title: c.label,
+    description: c.description,
+    prompt: c.prompt,
+    tags: [c.category.toLowerCase()],
+  })),
+];
 
 interface Props {
   open: boolean;
@@ -18,12 +33,12 @@ export const PromptLibrary: React.FC<Props> = ({ open, onClose, onSelect }) => {
   const [filterCategory, setFilterCategory] = useState<string>('all');
 
   const categories = useMemo(() => {
-    const all = new Set(PROMPT_TEMPLATES.map((t) => t.category));
+    const all = new Set(MERGED_LIBRARY.map((t) => t.category));
     return ['all', ...Array.from(all)];
   }, []);
 
   const filtered = useMemo(() => {
-    let list: PromptTemplate[] = filterAgent === 'all' ? PROMPT_TEMPLATES : getTemplatesByAgent(filterAgent);
+    let list: PromptTemplate[] = filterAgent === 'all' ? MERGED_LIBRARY : MERGED_LIBRARY.filter((t) => t.agentId === filterAgent);
     if (filterCategory !== 'all') list = list.filter((t) => t.category === filterCategory);
     if (query) {
       const q = query.toLowerCase();
@@ -59,7 +74,7 @@ export const PromptLibrary: React.FC<Props> = ({ open, onClose, onSelect }) => {
           <div className="flex items-center gap-2">
             <Sparkles size={16} className="text-amber-400" />
             <h2 className="text-sm font-semibold text-slate-200">Biblioteca de Prompts</h2>
-            <span className="text-[10px] px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded">{PROMPT_TEMPLATES.length} templates</span>
+            <span className="text-[10px] px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded">{MERGED_LIBRARY.length} templates</span>
           </div>
           <button onClick={onClose} className="text-slate-500 hover:text-slate-300">
             <X size={16} />

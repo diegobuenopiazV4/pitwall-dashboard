@@ -7,10 +7,12 @@ import {
   getStatus,
   setClaudeKey as saveClaudeKey,
   setGeminiKey as saveGeminiKey,
+  setOpenRouterKey as saveOpenRouterKey,
   setSelectedModel,
   setAutoModelEnabled,
   getClaudeKey,
   getGeminiKey,
+  getOpenRouterKey,
 } from '../../lib/ai/chat-provider';
 import { MODELS, MODEL_CATEGORIES, type ModelDefinition } from '../../lib/ai/models';
 
@@ -23,8 +25,10 @@ export const SettingsModal: React.FC<Props> = ({ open, onClose }) => {
   const { autoRouterEnabled, setAutoRouter, clients, messages, tasks, bookmarks, logout } = useAppStore();
   const [claudeKey, setClaudeKeyLocal] = useState('');
   const [geminiKey, setGeminiKeyLocal] = useState('');
+  const [openrouterKey, setOpenRouterKeyLocal] = useState('');
   const [showClaudeKey, setShowClaudeKey] = useState(false);
   const [showGeminiKey, setShowGeminiKey] = useState(false);
+  const [showOpenRouterKey, setShowOpenRouterKey] = useState(false);
   const [autoModel, setAutoModel] = useState(true);
   const [selectedModelId, setSelectedModelIdLocal] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'keys' | 'models' | 'account' | 'shortcuts'>('keys');
@@ -34,6 +38,7 @@ export const SettingsModal: React.FC<Props> = ({ open, onClose }) => {
       const status = getStatus();
       setClaudeKeyLocal(getClaudeKey());
       setGeminiKeyLocal(getGeminiKey());
+      setOpenRouterKeyLocal(getOpenRouterKey());
       setAutoModel(status.autoModelEnabled);
       setSelectedModelIdLocal(status.selectedModelId);
     }
@@ -42,6 +47,7 @@ export const SettingsModal: React.FC<Props> = ({ open, onClose }) => {
   const handleSave = () => {
     saveClaudeKey(claudeKey.trim());
     saveGeminiKey(geminiKey.trim());
+    saveOpenRouterKey(openrouterKey.trim());
     setAutoModelEnabled(autoModel);
     setSelectedModel(autoModel ? null : selectedModelId);
     toast.success('Configuracoes salvas');
@@ -62,6 +68,7 @@ export const SettingsModal: React.FC<Props> = ({ open, onClose }) => {
 
   const hasClaude = !!claudeKey && claudeKey.startsWith('sk-ant-');
   const hasGemini = !!geminiKey && geminiKey.startsWith('AIza');
+  const hasOpenRouter = !!openrouterKey && openrouterKey.startsWith('sk-or-');
 
   // Group models by category
   const modelsByCategory = Object.values(MODELS).reduce((acc, m) => {
@@ -176,7 +183,36 @@ export const SettingsModal: React.FC<Props> = ({ open, onClose }) => {
                   <a href="https://ai.google.dev" target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">
                     ai.google.dev
                   </a>
-                  . Modelos: 2.5 Pro, 2.5 Flash, 2.5 Flash Image (gera imagens!), Google Search incluso.
+                  . Modelos: 3.1 Pro, 3.1 Flash, 2.5 Flash Image (gera imagens!), Google Search + Audio + Video.
+                </p>
+              </div>
+
+              {/* OpenRouter Key - UM KEY, 400+ MODELOS */}
+              <div className="p-3 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-orange-500/10 border border-purple-500/30 rounded-lg space-y-2">
+                <label className="flex items-center gap-1.5 text-xs font-medium text-purple-300">
+                  <Key size={12} />
+                  OpenRouter API Key (400+ modelos com 1 chave)
+                  {hasOpenRouter && <Check size={12} className="text-emerald-400" />}
+                  <span className="text-[9px] px-1.5 py-0.5 bg-purple-500/30 text-purple-200 rounded">MAX MODE</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showOpenRouterKey ? 'text' : 'password'}
+                    value={openrouterKey}
+                    onChange={(e) => setOpenRouterKeyLocal(e.target.value)}
+                    placeholder="sk-or-v1-..."
+                    className="w-full pl-3 pr-10 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-mono"
+                  />
+                  <button onClick={() => setShowOpenRouterKey(!showOpenRouterKey)} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+                    {showOpenRouterKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  Obter em{' '}
+                  <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer" className="text-purple-300 hover:underline">
+                    openrouter.ai/keys
+                  </a>
+                  . Desbloqueia: <b>GPT-5.4</b>, <b>Grok 4</b>, <b>Llama 4 Behemoth</b>, <b>Qwen 3.5 Max</b>, <b>Mistral 3</b>, <b>DeepSeek-R1</b>, <b>Kimi K2</b>, OpenAI o3, e +400 modelos com uma unica chave. Pay-per-use.
                 </p>
               </div>
 
@@ -232,7 +268,10 @@ export const SettingsModal: React.FC<Props> = ({ open, onClose }) => {
                         <div className="space-y-1">
                           {models.map((m) => {
                             const isSelected = selectedModelId === m.id;
-                            const disabled = (m.provider === 'claude' && !hasClaude) || (m.provider === 'gemini' && !hasGemini);
+                            const disabled =
+                              (m.provider === 'claude' && !hasClaude) ||
+                              (m.provider === 'gemini' && !hasGemini) ||
+                              (m.provider === 'openrouter' && !hasOpenRouter);
                             return (
                               <button
                                 key={m.id}
@@ -258,7 +297,9 @@ export const SettingsModal: React.FC<Props> = ({ open, onClose }) => {
                                     <p className="text-[10px] text-slate-500 mt-0.5">{m.description}</p>
                                     <p className="text-[9px] text-slate-600 mt-0.5">Ideal: {m.idealFor.slice(0, 3).join(', ')}</p>
                                     {disabled && (
-                                      <p className="text-[9px] text-amber-500 mt-0.5">Requer {m.provider === 'claude' ? 'Claude' : 'Gemini'} key</p>
+                                      <p className="text-[9px] text-amber-500 mt-0.5">
+                                        Requer {m.provider === 'claude' ? 'Claude' : m.provider === 'gemini' ? 'Gemini' : 'OpenRouter'} key
+                                      </p>
                                     )}
                                   </div>
                                 </div>

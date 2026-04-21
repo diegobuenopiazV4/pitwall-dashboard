@@ -85,8 +85,8 @@ export const LoginForm: React.FC = () => {
         {/* Features preview */}
         <div className="grid grid-cols-3 gap-2 mb-6">
           <Feature icon={<Users size={12} />} label="Multi-usuario" />
-          <Feature icon={<Zap size={12} />} label="Claude + Gemini" />
-          <Feature icon={<Rocket size={12} />} label="50+ templates" />
+          <Feature icon={<Zap size={12} />} label="400+ modelos IA" />
+          <Feature icon={<Rocket size={12} />} label="112 comandos" />
         </div>
 
         {/* Mode Selector */}
