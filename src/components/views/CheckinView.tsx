@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import { FileText, Zap, Loader2, Download, Eye, Upload, Sparkles, FolderOpen, Calendar } from 'lucide-react';
+import { FileText, Zap, Loader2, Eye, Upload, Sparkles, FolderOpen, Calendar, FileCode, FileDown, FileType, Cloud } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppStore } from '../../stores/app-store';
 import { sendChat } from '../../lib/ai/chat-provider';
 import { buildCheckinSystemPrompt, CHECKIN_QUICK_COMMANDS } from '../../lib/checkin/references';
 import { listClientDocs, buildClientDocsContext } from '../../lib/clients/client-docs';
-import { safeFilename, exportHTML } from '../../lib/documents/exporters';
+import {
+  exportCheckinHTML,
+  exportCheckinPDF,
+  downloadCheckinDOCX,
+  exportCheckinGoogleDocs,
+} from '../../lib/checkin/exporters';
 
 type CheckinType = 'weekly' | 'monthly';
 
@@ -97,21 +102,31 @@ ENTREGUE: HTML completo em um unico bloco \`\`\`html ... \`\`\` com glassmorphis
     win.document.close();
   };
 
-  const handleDownload = () => {
+  const handleExport = async (format: 'html' | 'pdf' | 'docx' | 'gdocs') => {
     if (!generatedHtml || !currentClient) return;
-    const title = `checkin-${type}-${currentClient.name}-${new Date().toISOString().slice(0, 10)}`;
-    const filename = safeFilename(title);
-
-    const blob = new Blob([generatedHtml], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${filename}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast.success('Check-in baixado!');
+    const opts = {
+      html: generatedHtml,
+      clientName: currentClient.name,
+      type,
+      period,
+    };
+    try {
+      if (format === 'html') {
+        exportCheckinHTML(opts);
+        toast.success('HTML baixado! (qualidade Claude Design)');
+      } else if (format === 'pdf') {
+        exportCheckinPDF(opts);
+        toast.success('Abrindo PDF preview - escolha "Save as PDF" no dialog');
+      } else if (format === 'docx') {
+        await downloadCheckinDOCX(opts);
+        toast.success('DOCX baixado! Abra no Word ou Google Docs');
+      } else if (format === 'gdocs') {
+        await exportCheckinGoogleDocs(opts);
+        toast.success('DOCX baixado! Arraste para o Google Drive (aba aberta) para converter', { duration: 5000 });
+      }
+    } catch (err) {
+      toast.error(`Erro ao exportar: ${err instanceof Error ? err.message : 'desconhecido'}`);
+    }
   };
 
   return (
@@ -258,21 +273,54 @@ ENTREGUE: HTML completo em um unico bloco \`\`\`html ... \`\`\` com glassmorphis
                 <div className="text-[11px] text-slate-400">
                   {generatedHtml.length.toLocaleString()} caracteres · {generatedHtml.match(/<section|<div class="slide/g)?.length ?? 0} slides detectados
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handlePreview}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-md"
-                  >
-                    <Eye size={12} />
-                    Preview em nova aba
-                  </button>
-                  <button
-                    onClick={handleDownload}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs text-white bg-emerald-600 hover:bg-emerald-500 rounded-md"
-                  >
-                    <Download size={12} />
-                    Baixar HTML
-                  </button>
+
+                <button
+                  onClick={handlePreview}
+                  className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-md"
+                >
+                  <Eye size={12} />
+                  Preview em nova aba
+                </button>
+
+                {/* Export formats grid */}
+                <div>
+                  <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                    Exportar em:
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <ExportButton
+                      icon={<FileCode size={14} />}
+                      label="HTML Premium"
+                      sublabel="Glassmorphism · Claude Design"
+                      color="blue"
+                      onClick={() => handleExport('html')}
+                    />
+                    <ExportButton
+                      icon={<FileDown size={14} />}
+                      label="PDF"
+                      sublabel="Print-ready · qualidade alta"
+                      color="red"
+                      onClick={() => handleExport('pdf')}
+                    />
+                    <ExportButton
+                      icon={<FileType size={14} />}
+                      label="Word (.docx)"
+                      sublabel="Editavel · Microsoft Word"
+                      color="indigo"
+                      onClick={() => handleExport('docx')}
+                    />
+                    <ExportButton
+                      icon={<Cloud size={14} />}
+                      label="Google Docs"
+                      sublabel="Abre Drive + baixa DOCX"
+                      color="emerald"
+                      onClick={() => handleExport('gdocs')}
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800 text-[10px] text-slate-500">
+                  <b className="text-slate-400">Dica:</b> HTML mantem a qualidade visual glassmorphism (Claude Design). PDF e para enviar impresso/anexo email. DOCX funciona em Word + Google Docs (abra em drive.google.com e arraste o arquivo - converte automaticamente).
                 </div>
               </div>
             )}
@@ -287,12 +335,40 @@ ENTREGUE: HTML completo em um unico bloco \`\`\`html ... \`\`\` com glassmorphis
                 <li>StoryBrand: cliente = heroi, nos = guia</li>
                 <li>Variacoes WoW/MoM com inversao (CPL/CPC sobe=ruim)</li>
                 <li>ICE Score em recomendacoes · Imposto META 12,15% calculado</li>
-                <li>Download HTML auto-contido pronto para enviar ao cliente</li>
+                <li>Download em 4 formatos: HTML, PDF, Word (.docx), Google Docs</li>
               </ol>
             </div>
           </>
         )}
       </div>
     </div>
+  );
+};
+
+const ExportButton: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  sublabel: string;
+  color: 'blue' | 'red' | 'indigo' | 'emerald';
+  onClick: () => void;
+}> = ({ icon, label, sublabel, color, onClick }) => {
+  const colors = {
+    blue: 'bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20',
+    red: 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20',
+    indigo: 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20',
+    emerald: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20',
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-start gap-2 p-3 rounded-lg border transition-all text-left ${colors[color]}`}
+    >
+      <span className="shrink-0 mt-0.5">{icon}</span>
+      <div className="min-w-0 flex-1">
+        <div className="text-xs font-semibold">{label}</div>
+        <div className="text-[9px] opacity-70 truncate">{sublabel}</div>
+      </div>
+    </button>
   );
 };
