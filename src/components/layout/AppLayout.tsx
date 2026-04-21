@@ -11,6 +11,7 @@ import { PromptLibrary } from '../library/PromptLibrary';
 import { KanbanView } from '../views/KanbanView';
 import { AnalyticsView } from '../views/AnalyticsView';
 import { DocumentsView } from '../views/DocumentsView';
+import { OnboardingBanner } from '../auth/OnboardingBanner';
 import { useAppStore } from '../../stores/app-store';
 
 export const AppLayout: React.FC = () => {
@@ -37,6 +38,7 @@ export const AppLayout: React.FC = () => {
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0f] text-slate-200">
       <Header />
+      <OnboardingBanner />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0">

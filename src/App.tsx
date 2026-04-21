@@ -4,7 +4,7 @@ import { LoginForm } from './components/auth/LoginForm';
 import { AppLayout } from './components/layout/AppLayout';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useSupabaseSync } from './hooks/useSupabaseSync';
-import { supabase } from './lib/supabase/client';
+import { supabase, isSupabaseConfigured } from './lib/supabase/client';
 import { Toaster } from 'react-hot-toast';
 
 const App: React.FC = () => {
@@ -14,6 +14,12 @@ const App: React.FC = () => {
   useSupabaseSync();
 
   useEffect(() => {
+    // If Supabase is not configured, skip auth checks entirely and land on the login screen.
+    if (!isSupabaseConfigured) {
+      setLoading(false);
+      return;
+    }
+
     // Check existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -35,7 +41,7 @@ const App: React.FC = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [setAuth, setLoading]);
 
   if (isLoading) {
     return (
