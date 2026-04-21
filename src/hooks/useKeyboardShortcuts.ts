@@ -52,6 +52,12 @@ export function useKeyboardShortcuts() {
         setViewMode('documents');
         return;
       }
+      // Ctrl+Shift+I : Check-in view
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'i') {
+        e.preventDefault();
+        setViewMode('checkin');
+        return;
+      }
       // Ctrl+Shift+C : Chat view
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'c') {
         e.preventDefault();

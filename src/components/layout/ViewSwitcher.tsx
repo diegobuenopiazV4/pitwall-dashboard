@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquare, Kanban, BarChart3, FolderOpen } from 'lucide-react';
+import { MessageSquare, Kanban, BarChart3, FolderOpen, Sparkles } from 'lucide-react';
 import { useAppStore, type ViewMode } from '../../stores/app-store';
 
 const VIEWS: { id: ViewMode; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
@@ -7,6 +7,7 @@ const VIEWS: { id: ViewMode; label: string; icon: React.ComponentType<{ size?: n
   { id: 'kanban', label: 'Kanban', icon: Kanban },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'documents', label: 'Documentos', icon: FolderOpen },
+  { id: 'checkin', label: 'Check-in', icon: Sparkles },
 ];
 
 export const ViewSwitcher: React.FC = () => {

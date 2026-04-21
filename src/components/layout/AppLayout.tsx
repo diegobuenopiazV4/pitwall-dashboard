@@ -11,6 +11,7 @@ import { PromptLibrary } from '../library/PromptLibrary';
 import { KanbanView } from '../views/KanbanView';
 import { AnalyticsView } from '../views/AnalyticsView';
 import { DocumentsView } from '../views/DocumentsView';
+import { CheckinView } from '../views/CheckinView';
 import { OnboardingBanner } from '../auth/OnboardingBanner';
 import { ClientDocsModal } from '../modals/ClientDocsModal';
 import { useAppStore } from '../../stores/app-store';
@@ -31,6 +32,8 @@ export const AppLayout: React.FC = () => {
         return <AnalyticsView />;
       case 'documents':
         return <DocumentsView />;
+      case 'checkin':
+        return <CheckinView />;
       default:
         return <ChatArea />;
     }

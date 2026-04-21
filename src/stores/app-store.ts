@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { Agent, Client, Message, Task, PromptParams } from '../lib/agents/types';
 import { AGENTS } from '../lib/agents/agents-data';
 
-export type ViewMode = 'chat' | 'kanban' | 'analytics' | 'documents';
+export type ViewMode = 'chat' | 'kanban' | 'analytics' | 'documents' | 'checkin';
 
 interface AppState {
   // Auth
