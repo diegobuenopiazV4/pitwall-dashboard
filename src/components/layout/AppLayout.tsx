@@ -12,13 +12,14 @@ import { KanbanView } from '../views/KanbanView';
 import { AnalyticsView } from '../views/AnalyticsView';
 import { DocumentsView } from '../views/DocumentsView';
 import { OnboardingBanner } from '../auth/OnboardingBanner';
+import { ClientDocsModal } from '../modals/ClientDocsModal';
 import { useAppStore } from '../../stores/app-store';
 
 export const AppLayout: React.FC = () => {
   const {
-    searchOpen, overviewOpen, commandPaletteOpen, libraryOpen,
+    searchOpen, overviewOpen, commandPaletteOpen, libraryOpen, clientDocsOpen,
     viewMode, setLibraryOpen, setCommandPaletteOpen,
-    setAnalyticsOpen, setSearchOpen, setOverviewOpen,
+    setAnalyticsOpen, setSearchOpen, setOverviewOpen, setClientDocsOpen,
     setViewMode,
   } = useAppStore();
 
@@ -77,6 +78,7 @@ export const AppLayout: React.FC = () => {
           setViewMode('chat');
         }}
       />
+      <ClientDocsModal open={clientDocsOpen} onClose={() => setClientDocsOpen(false)} />
     </div>
   );
 };

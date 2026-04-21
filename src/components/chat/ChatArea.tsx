@@ -26,6 +26,7 @@ export const ChatArea: React.FC = () => {
   const [input, setInput] = useState('');
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [showUpload, setShowUpload] = useState(false);
+  const [pendingModelId, setPendingModelId] = useState<string | undefined>(undefined);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const convKey = getConvKey();
@@ -131,11 +132,27 @@ export const ChatArea: React.FC = () => {
     setStreaming(true);
 
     try {
-      // Resolve modelo que vai ser usado (para injetar no prompt)
-      const { resolveModel } = await import('../../lib/ai/chat-provider');
-      const modelToUse = resolveModel(userText, finalAgent.id);
+      // Resolve modelo que vai ser usado (considerando preferredModelId do comando)
+      const { resolveModel, resolveModelWithOverride } = await import('../../lib/ai/chat-provider');
+      const modelToUse = pendingModelId
+        ? resolveModelWithOverride(pendingModelId)
+        : resolveModel(userText, finalAgent.id);
 
-      const systemPrompt = buildSystemPrompt({
+      // Client docs context (injetar documentos do cliente se houver)
+      let clientDocsContext = '';
+      if (currentClient) {
+        try {
+          const { listClientDocs, buildClientDocsContext } = await import('../../lib/clients/client-docs');
+          const docs = await listClientDocs(userId || 'offline', currentClient.id);
+          if (docs.length > 0) {
+            clientDocsContext = await buildClientDocsContext(docs);
+          }
+        } catch {
+          // offline/no docs
+        }
+      }
+
+      const baseSystemPrompt = buildSystemPrompt({
         agent: finalAgent,
         client: currentClient,
         userName,
@@ -152,13 +169,18 @@ export const ChatArea: React.FC = () => {
         includeReferences: true,
       });
 
+      const systemPrompt = clientDocsContext ? `${baseSystemPrompt}\n${clientDocsContext}` : baseSystemPrompt;
+
       const aiResult = await sendChat({
         systemPrompt,
         userPrompt: userText,
         maxTokens: modelToUse?.maxOutput ?? 8192,
         temperature: 0.8,
         agentId: finalAgent.id,
+        overrideModelId: pendingModelId,
       });
+      // Reset pending override apos envio
+      setPendingModelId(undefined);
 
       let responseText: string;
       let modelLabel: string | undefined;
@@ -213,8 +235,9 @@ export const ChatArea: React.FC = () => {
     }
   };
 
-  const handleQuickAction = (action: string) => {
+  const handleQuickAction = (action: string, preferredModelId?: string) => {
     setInput(action);
+    if (preferredModelId) setPendingModelId(preferredModelId);
     setTimeout(() => textareaRef.current?.focus(), 50);
   };
 

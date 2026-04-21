@@ -9,12 +9,14 @@ import type { ChatRequest } from './types';
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
 export type ClaudeApiModel =
+  | 'claude-opus-4-7'
   | 'claude-opus-4-5'
   | 'claude-opus-4-1'
+  | 'claude-sonnet-4-6'
   | 'claude-sonnet-4-5'
   | 'claude-haiku-4-5';
 
-const DEFAULT_MODEL: ClaudeApiModel = 'claude-sonnet-4-5';
+const DEFAULT_MODEL: ClaudeApiModel = 'claude-sonnet-4-6';
 
 export async function callClaude(
   req: ChatRequest,

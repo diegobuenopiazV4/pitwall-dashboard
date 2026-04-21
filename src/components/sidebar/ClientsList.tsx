@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, FolderOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppStore } from '../../stores/app-store';
 import { NewClientModal } from '../modals/NewClientModal';
@@ -19,7 +19,7 @@ const STEP_COLORS = {
 };
 
 export const ClientsList: React.FC = () => {
-  const { clients, currentClient, selectClient, setClients } = useAppStore();
+  const { clients, currentClient, selectClient, setClients, setClientDocsOpen } = useAppStore();
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
@@ -74,13 +74,25 @@ export const ClientsList: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => setConfirmDelete(client.id)}
-                className="p-1 text-slate-600 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all shrink-0"
-                title="Remover"
-              >
-                <Trash2 size={12} />
-              </button>
+              <>
+                <button
+                  onClick={() => {
+                    selectClient(client);
+                    setClientDocsOpen(true);
+                  }}
+                  className="p-1 text-slate-600 opacity-0 group-hover:opacity-100 hover:text-blue-400 transition-all shrink-0"
+                  title="Documentos do cliente"
+                >
+                  <FolderOpen size={12} />
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(client.id)}
+                  className="p-1 text-slate-600 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all shrink-0"
+                  title="Remover"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </>
             )}
           </div>
         ))}

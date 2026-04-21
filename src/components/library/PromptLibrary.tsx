@@ -4,9 +4,10 @@ import toast from 'react-hot-toast';
 import { useAppStore } from '../../stores/app-store';
 import { getTemplatesByAgent, applyPlaceholders, PROMPT_TEMPLATES, type PromptTemplate } from '../../lib/prompts/templates';
 import { QUICK_COMMANDS } from '../../lib/prompts/quick-commands';
+import { getAllCommands } from '../../lib/prompts/command-generator';
 import { AGENTS } from '../../lib/agents/agents-data';
 
-// Merge templates + quick commands na biblioteca
+// Merge templates + quick commands + 1600 generated = biblioteca completa
 const MERGED_LIBRARY: PromptTemplate[] = [
   ...PROMPT_TEMPLATES,
   ...QUICK_COMMANDS.map((c) => ({
@@ -17,6 +18,15 @@ const MERGED_LIBRARY: PromptTemplate[] = [
     description: c.description,
     prompt: c.prompt,
     tags: [c.category.toLowerCase()],
+  })),
+  ...getAllCommands().map((c) => ({
+    id: `gen-${c.id}`,
+    agentId: c.agentId,
+    category: c.category,
+    title: c.label,
+    description: `${c.description} · ${c.mentors.slice(0, 2).join(', ')}`,
+    prompt: c.prompt,
+    tags: c.tags,
   })),
 ];
 

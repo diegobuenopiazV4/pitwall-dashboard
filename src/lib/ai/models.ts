@@ -30,6 +30,66 @@ export interface ModelDefinition {
 export const MODELS: Record<string, ModelDefinition> = {
   // ========= FRONTIER (TOP DE LINHA - Abril 2026) =========
 
+  'claude-opus-4-7': {
+    id: 'claude-opus-4-7',
+    label: 'Claude Opus 4.7',
+    provider: 'claude',
+    apiModel: 'claude-opus-4-7',
+    category: 'frontier',
+    description: 'FLAGSHIP ANTHROPIC (Abr 2026). xhigh effort level, Task budgets, /ultrareview, vision 2576px. Respostas mais humanas.',
+    contextWindow: 500000,
+    maxOutput: 64000,
+    supportsExtendedThinking: true,
+    supportsVision: true,
+    supportsAudio: false,
+    supportsVideo: false,
+    supportsGoogleSearch: false,
+    supportsImageGen: false,
+    idealFor: ['codigo complexo', 'visao alta resolucao', 'estrategia', 'raciocinio multi-step'],
+    costTier: 5,
+    badge: 'LATEST',
+  },
+
+  'claude-sonnet-4-6': {
+    id: 'claude-sonnet-4-6',
+    label: 'Claude Sonnet 4.6',
+    provider: 'claude',
+    apiModel: 'claude-sonnet-4-6',
+    category: 'balanced',
+    description: 'Workhorse Anthropic (Fev 2026). 1M tokens beta. Melhor em coding, design, agent planning, long-context.',
+    contextWindow: 1000000,
+    maxOutput: 32000,
+    supportsExtendedThinking: true,
+    supportsVision: true,
+    supportsAudio: false,
+    supportsVideo: false,
+    supportsGoogleSearch: false,
+    supportsImageGen: false,
+    idealFor: ['copy', 'artigo', 'planning', 'design tokens', 'longo contexto'],
+    costTier: 3,
+    badge: 'NEW',
+  },
+
+  'claude-opus-4-7-xhigh': {
+    id: 'claude-opus-4-7-xhigh',
+    label: 'Opus 4.7 xhigh (maximo raciocinio)',
+    provider: 'claude',
+    apiModel: 'claude-opus-4-7',
+    category: 'reasoning',
+    description: 'Opus 4.7 com effort level "xhigh" (entre high e max). Para problemas mais dificeis.',
+    contextWindow: 500000,
+    maxOutput: 64000,
+    supportsExtendedThinking: true,
+    supportsVision: true,
+    supportsAudio: false,
+    supportsVideo: false,
+    supportsGoogleSearch: false,
+    supportsImageGen: false,
+    idealFor: ['problemas multi-variavel', 'TOC thinking processes', 'arquitetura sistema'],
+    costTier: 5,
+    systemPromptStyle: 'Use xhigh effort level. Considere todas as alternativas, faca self-review antes de responder.',
+  },
+
   'gpt-5-4': {
     id: 'gpt-5-4',
     label: 'GPT-5.4 (OpenAI)',
@@ -91,11 +151,11 @@ export const MODELS: Record<string, ModelDefinition> = {
 
   'claude-opus-4-5': {
     id: 'claude-opus-4-5',
-    label: 'Claude Opus 4.5',
+    label: 'Claude Opus 4.5 (legacy)',
     provider: 'claude',
     apiModel: 'claude-opus-4-5',
     category: 'frontier',
-    description: 'Flagship Anthropic (Nov 2025). 80.9% SWE-bench. Respostas mais "humanas" e raciocinio avancado.',
+    description: 'Flagship anterior (Nov 2025). Mantido para compatibilidade. Prefira 4.7 quando disponivel.',
     contextWindow: 200000,
     maxOutput: 32000,
     supportsExtendedThinking: true,
@@ -105,7 +165,7 @@ export const MODELS: Record<string, ModelDefinition> = {
     supportsGoogleSearch: false,
     supportsImageGen: false,
     idealFor: ['estrategia', 'escrita longa', 'analise profunda', 'codigo'],
-    costTier: 5,
+    costTier: 4,
   },
 
   'grok-4': {
@@ -129,13 +189,13 @@ export const MODELS: Record<string, ModelDefinition> = {
 
   // ========= REASONING (PENSAMENTO ESTENDIDO) =========
 
-  'claude-opus-4-5-thinking': {
-    id: 'claude-opus-4-5-thinking',
-    label: 'Claude Opus 4.5 + Extended Thinking',
+  'claude-opus-4-7-thinking': {
+    id: 'claude-opus-4-7-thinking',
+    label: 'Claude Opus 4.7 + Extended Thinking',
     provider: 'claude',
-    apiModel: 'claude-opus-4-5',
+    apiModel: 'claude-opus-4-7',
     category: 'reasoning',
-    description: 'Opus 4.5 com raciocinio estendido. Mostra o pensamento antes de responder.',
+    description: 'Opus 4.7 com raciocinio estendido. Mostra o pensamento antes de responder.',
     contextWindow: 200000,
     maxOutput: 32000,
     supportsExtendedThinking: true,
@@ -506,7 +566,7 @@ export const MODELS: Record<string, ModelDefinition> = {
     id: 'virtual-creative-powerhouse',
     label: 'Creative Powerhouse',
     provider: 'claude',
-    apiModel: 'claude-opus-4-5',
+    apiModel: 'claude-opus-4-7',
     category: 'creative',
     description: 'Opus 4.5 tuned para copy viral, storytelling, brand voice. Ogilvy + Schwartz + MrBeast.',
     contextWindow: 200000,
@@ -526,7 +586,7 @@ export const MODELS: Record<string, ModelDefinition> = {
     id: 'virtual-strategist-toc',
     label: 'Strategist TOC (Goldratt-style)',
     provider: 'claude',
-    apiModel: 'claude-opus-4-5',
+    apiModel: 'claude-opus-4-7',
     category: 'creative',
     description: 'Opus 4.5 especializado em Teoria das Restricoes. Goldratt + Collins + Drucker + Porter.',
     contextWindow: 200000,
@@ -601,24 +661,55 @@ export const MODELS: Record<string, ModelDefinition> = {
     costTier: 2,
   },
 
-  'virtual-claude-design': {
-    id: 'virtual-claude-design',
-    label: 'Claude Design (SVG + HTML/CSS)',
+  'claude-design': {
+    id: 'claude-design',
+    label: 'Claude Design (NEW - Opus 4.7)',
     provider: 'claude',
-    apiModel: 'claude-opus-4-5',
+    apiModel: 'claude-opus-4-7',
     category: 'multimodal',
-    description: 'Opus 4.5 tuned para gerar designs como SVG, HTML/CSS, animacoes CSS. Exports editaveis.',
-    contextWindow: 200000,
-    maxOutput: 32000,
+    description: 'Produto recem lancado (17/Abr/2026) para Landing Pages e mockups. HTML/CSS vivo, clicavel, testavel. Ideal para LPs.',
+    contextWindow: 500000,
+    maxOutput: 64000,
     supportsExtendedThinking: false,
     supportsVision: true,
     supportsAudio: false,
     supportsVideo: false,
     supportsGoogleSearch: false,
     supportsImageGen: false,
-    idealFor: ['SVG icons', 'HTML/CSS components', 'mockups editaveis', 'design system', 'animacoes'],
+    idealFor: ['landing pages', 'pitch decks', 'one-pagers', 'mockups apps', 'design system', 'component library'],
     costTier: 5,
-    systemPromptStyle: 'Voce e um designer/engenheiro que produz designs como codigo. Entregue SVG valido, HTML/CSS moderno (Tailwind), animacoes CSS. Codigo limpo, responsive, acessivel. Preferia linhas simples e elegantes (estilo Stripe, Linear, Vercel).',
+    badge: 'NEW',
+    systemPromptStyle: `Voce e Claude Design da Anthropic. Sua especialidade: produzir designs como codigo HTML/CSS vivo, clicavel e testavel.
+
+REGRAS:
+1. Output principal e SEMPRE HTML completo com Tailwind CSS inline (CDN) - pronto para salvar como .html e abrir no browser
+2. Designs responsive, acessiveis (WCAG AA), com interacoes reais (hover, transitions, click handlers em JS vanilla)
+3. Estilo visual: moderno, clean, estilo Stripe/Linear/Vercel/Anthropic
+4. Para Landing Pages: hero impactante + secoes (problem, solution, features, social proof, pricing, FAQ, CTA), com animacoes CSS suaves
+5. Sempre inclua meta tags SEO, Open Graph, favicon placeholder
+6. Para cada componente gerado, liste variacoes possiveis (cores, layouts)
+7. Cite inspiracoes de design (Stripe.com, Linear.app, etc) quando relevante
+8. Entregue em um unico bloco de codigo \`\`\`html pronto para copiar`,
+  },
+
+  'claude-design-figma': {
+    id: 'claude-design-figma',
+    label: 'Claude Design + Tokens (design system)',
+    provider: 'claude',
+    apiModel: 'claude-opus-4-7',
+    category: 'multimodal',
+    description: 'Opus 4.7 especializado em extrair design system (tokens) e aplicar em novos componentes consistentes.',
+    contextWindow: 500000,
+    maxOutput: 64000,
+    supportsExtendedThinking: false,
+    supportsVision: true,
+    supportsAudio: false,
+    supportsVideo: false,
+    supportsGoogleSearch: false,
+    supportsImageGen: false,
+    idealFor: ['design system', 'tokens', 'componentes consistentes', 'documentacao design'],
+    costTier: 5,
+    systemPromptStyle: 'Voce e um design system engineer. Extraia tokens (cores, tipografia, espacamento, sombras, radii, breakpoints) do contexto e aplique em novos componentes. Entregue CSS custom properties + Tailwind config + componentes React exemplares.',
   },
 
   'virtual-realtime-grok': {
@@ -674,12 +765,14 @@ export function autoSelectModel(
     return MODELS['virtual-designer-visual'];
   }
 
-  // 2. Video Dev / Design System / SVG / Component
+  // 2. Claude Design (NEW) - Landing Pages, HTML/CSS, mockups
   if (hasClaudeKey && (
-    prompt.includes('svg') || prompt.includes('html/css') || prompt.includes('component') ||
-    prompt.includes('design system') || prompt.includes('icon design')
+    prompt.includes('landing page') || prompt.includes('lp ') || prompt.includes('one-pager') ||
+    prompt.includes('pitch deck') || prompt.includes('mockup') || prompt.includes('prototipo') ||
+    prompt.includes('html') || prompt.includes('ui ') || prompt.includes('interface') ||
+    prompt.includes('design system') || prompt.includes('component') || prompt.includes('svg')
   )) {
-    return MODELS['virtual-claude-design'];
+    return MODELS['claude-design'];
   }
 
   // 3. Realtime/trending topics
@@ -703,7 +796,7 @@ export function autoSelectModel(
     prompt.includes('calcul') || prompt.includes('matematica') ||
     prompt.includes('formula') || prompt.includes('roi') && prompt.includes('explicar')
   )) {
-    return hasOpenRouterKey ? MODELS['deepseek-r1'] : MODELS['claude-sonnet-4-5-thinking'];
+    return hasOpenRouterKey ? MODELS['deepseek-r1'] : MODELS['claude-sonnet-4-5-thinking'] ?? MODELS['claude-sonnet-4-6'];
   }
 
   // 6. Agente 13 -> Data Analyst
@@ -720,7 +813,7 @@ export function autoSelectModel(
     prompt.includes('diagnostico') || prompt.includes('estrategia') ||
     prompt.includes('planejamento profundo') || prompt.includes('gargalo')
   )) {
-    return MODELS['claude-opus-4-5-thinking'];
+    return MODELS['claude-opus-4-7-thinking'];
   }
 
   // 10. Legendas/hashtags/headlines rapidas -> Haiku
@@ -734,15 +827,15 @@ export function autoSelectModel(
   // 11. Codigo/codificacao
   if (prompt.includes('codig') || prompt.includes('implement')) {
     if (hasOpenRouterKey) return MODELS['gpt-5-4'];
-    if (hasClaudeKey) return MODELS['claude-opus-4-5'];
+    if (hasClaudeKey) return MODELS['claude-opus-4-7'];
   }
 
-  // 12. Default por prioridade
-  if (hasClaudeKey) return MODELS['claude-sonnet-4-5'];
+  // 12. Default por prioridade (prefere Sonnet 4.6 - mais novo)
+  if (hasClaudeKey) return MODELS['claude-sonnet-4-6'];
   if (hasGeminiKey) return MODELS['gemini-3-1-flash'];
   if (hasOpenRouterKey) return MODELS['gpt-5-4-mini'];
 
-  return MODELS['claude-sonnet-4-5'];
+  return MODELS['claude-sonnet-4-6'];
 }
 
 export function getModelsByProvider(provider: APIProvider): ModelDefinition[] {

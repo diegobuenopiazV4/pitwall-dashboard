@@ -43,6 +43,10 @@ interface AppState {
   libraryOpen: boolean;
   analyticsOpen: boolean;
   documentsLibraryOpen: boolean;
+  clientDocsOpen: boolean;
+
+  // Client docs cache (per client)
+  clientDocs: Record<string, any[]>;
 
   // Actions
   setAuth: (userId: string, userName: string) => void;
@@ -74,6 +78,8 @@ interface AppState {
   setLibraryOpen: (open: boolean) => void;
   setAnalyticsOpen: (open: boolean) => void;
   setDocumentsLibraryOpen: (open: boolean) => void;
+  setClientDocsOpen: (open: boolean) => void;
+  setClientDocs: (clientId: string, docs: any[]) => void;
   getConvKey: () => string;
   getAllMessages: () => Message[];
 }
@@ -110,6 +116,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   libraryOpen: false,
   analyticsOpen: false,
   documentsLibraryOpen: false,
+  clientDocsOpen: false,
+  clientDocs: {},
 
   setAuth: (userId, userName) => set({ userId, userName, isAuthenticated: true, isLoading: false }),
   logout: () => set({
@@ -175,6 +183,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   setLibraryOpen: (libraryOpen) => set({ libraryOpen }),
   setAnalyticsOpen: (analyticsOpen) => set({ analyticsOpen }),
   setDocumentsLibraryOpen: (documentsLibraryOpen) => set({ documentsLibraryOpen }),
+  setClientDocsOpen: (clientDocsOpen) => set({ clientDocsOpen }),
+  setClientDocs: (clientId, docs) => set((s) => ({ clientDocs: { ...s.clientDocs, [clientId]: docs } })),
 
   getConvKey: () => {
     const { currentAgent, currentClient } = get();

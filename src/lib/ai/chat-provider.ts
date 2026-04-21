@@ -105,14 +105,38 @@ export function resolveModel(userPrompt: string, agentId: string): ModelDefiniti
     }
   }
 
-  if (status.hasClaudeKey) return MODELS['claude-sonnet-4-5'];
+  if (status.hasClaudeKey) return MODELS['claude-sonnet-4-6'];
   if (status.hasGeminiKey) return MODELS['gemini-3-1-flash'];
   if (status.hasOpenRouterKey) return MODELS['gpt-5-4-mini'];
   return null;
 }
 
-export async function sendChat(req: ChatRequest & { agentId?: string }): Promise<ChatResult | null> {
-  const model = resolveModel(req.userPrompt, req.agentId ?? '01');
+/**
+ * Override: usar um modelo especifico (ex: vindo do preferredModelId de um comando).
+ * Faz fallback se a key nao estiver disponivel.
+ */
+export function resolveModelWithOverride(modelId: string): ModelDefinition | null {
+  const model = MODELS[modelId];
+  if (!model) return null;
+
+  const status = getStatus();
+  if (model.provider === 'claude' && !status.hasClaudeKey) {
+    // Fallback para primeiro disponivel
+    return resolveModel('', '01');
+  }
+  if (model.provider === 'gemini' && !status.hasGeminiKey) {
+    return resolveModel('', '01');
+  }
+  if (model.provider === 'openrouter' && !status.hasOpenRouterKey) {
+    return resolveModel('', '01');
+  }
+  return model;
+}
+
+export async function sendChat(req: ChatRequest & { agentId?: string; overrideModelId?: string }): Promise<ChatResult | null> {
+  const model = req.overrideModelId
+    ? resolveModelWithOverride(req.overrideModelId)
+    : resolveModel(req.userPrompt, req.agentId ?? '01');
   if (!model) return null;
 
   let systemPrompt = req.systemPrompt;
