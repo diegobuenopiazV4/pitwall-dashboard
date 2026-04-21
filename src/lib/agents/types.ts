@@ -36,6 +36,12 @@ export interface Message {
   content: string;
   agentId?: string;
   createdAt: string;
+  // Extended metadata (opcional)
+  modelUsed?: string;
+  modelProvider?: 'claude' | 'gemini';
+  thinkingTokens?: number;
+  images?: string[]; // base64 data URLs (de geracao Gemini Image)
+  attachedFiles?: { name: string; type: string; size: number }[];
 }
 
 export interface Conversation {

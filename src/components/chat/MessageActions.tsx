@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Copy, Download, Check, FileText, FileCode, FileDown, Star } from 'lucide-react';
+import { Copy, Download, Check, FileText, FileCode, FileDown, Star, Volume2, VolumeX } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { exportMarkdown, exportHTML, exportPDF, safeFilename } from '../../lib/documents/exporters';
 import { useAppStore } from '../../stores/app-store';
+import { useTextToSpeech } from '../../hooks/useTextToSpeech';
 
 interface Props {
   content: string;
@@ -13,10 +14,16 @@ interface Props {
 
 export const MessageActions: React.FC<Props> = ({ content, messageId, agentName, clientName }) => {
   const { bookmarks, toggleBookmark } = useAppStore();
+  const { isSpeaking, isSupported: ttsSupported, speak, stop: stopTTS } = useTextToSpeech();
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isBookmarked = messageId ? bookmarks.has(messageId) : false;
+
+  const handleTTS = () => {
+    if (isSpeaking) stopTTS();
+    else speak(content);
+  };
 
   const handleCopy = async () => {
     try {
@@ -80,6 +87,21 @@ export const MessageActions: React.FC<Props> = ({ content, messageId, agentName,
         >
           <Star size={11} fill={isBookmarked ? 'currentColor' : 'none'} />
           {isBookmarked ? 'Favorito' : 'Favoritar'}
+        </button>
+      )}
+
+      {ttsSupported && (
+        <button
+          onClick={handleTTS}
+          className={`flex items-center gap-1 px-2 py-1 text-[10px] rounded transition-colors ${
+            isSpeaking
+              ? 'text-blue-400 bg-blue-500/10 hover:bg-blue-500/20'
+              : 'text-slate-500 hover:text-blue-400 hover:bg-slate-700/50'
+          }`}
+          title={isSpeaking ? 'Parar leitura' : 'Ouvir (pt-BR)'}
+        >
+          {isSpeaking ? <VolumeX size={11} /> : <Volume2 size={11} />}
+          {isSpeaking ? 'Parar' : 'Ouvir'}
         </button>
       )}
 

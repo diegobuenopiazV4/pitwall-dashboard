@@ -86,6 +86,8 @@ export const ChainModal: React.FC<Props> = ({ open, onClose }) => {
           sprintWeek,
           sprintGoals,
           recentMessages: [],
+          userPrompt: prompt,
+          includeReferences: true,
         });
 
         let response: string;
@@ -94,6 +96,7 @@ export const ChainModal: React.FC<Props> = ({ open, onClose }) => {
           userPrompt: prompt,
           maxTokens: 8192,
           temperature: 0.8,
+          agentId: step.agent.id,
         });
         if (aiResult) {
           response = aiResult.text;

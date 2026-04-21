@@ -131,6 +131,10 @@ export const ChatArea: React.FC = () => {
     setStreaming(true);
 
     try {
+      // Resolve modelo que vai ser usado (para injetar no prompt)
+      const { resolveModel } = await import('../../lib/ai/chat-provider');
+      const modelToUse = resolveModel(userText, finalAgent.id);
+
       const systemPrompt = buildSystemPrompt({
         agent: finalAgent,
         client: currentClient,
@@ -143,18 +147,35 @@ export const ChatArea: React.FC = () => {
           role: m.role,
           content: m.content,
         })),
+        userPrompt: userText,
+        model: modelToUse ?? undefined,
+        includeReferences: true,
       });
 
-      let responseText: string;
       const aiResult = await sendChat({
         systemPrompt,
         userPrompt: userText,
-        maxTokens: 8192,
+        maxTokens: modelToUse?.maxOutput ?? 8192,
         temperature: 0.8,
+        agentId: finalAgent.id,
       });
+
+      let responseText: string;
+      let modelLabel: string | undefined;
+      let modelProvider: 'claude' | 'gemini' | undefined;
+      let thinkingTokens: number | undefined;
+      let images: string[] | undefined;
 
       if (aiResult) {
         responseText = aiResult.text;
+        modelLabel = aiResult.model.label;
+        modelProvider = aiResult.model.provider;
+        thinkingTokens = aiResult.thinkingTokens;
+        images = aiResult.images;
+
+        if (thinkingTokens && thinkingTokens > 0) {
+          toast.success(`${modelLabel} pensou por ${thinkingTokens} tokens`, { duration: 2000 });
+        }
       } else {
         responseText = generateOfflineResponse(userText, finalAgent, currentClient);
         toast('Modo offline. Configure Claude ou Gemini em Settings.', { icon: 'ℹ️', duration: 3000 });
@@ -167,6 +188,10 @@ export const ChatArea: React.FC = () => {
         content: responseText,
         agentId: finalAgent.id,
         createdAt: new Date().toISOString(),
+        modelUsed: modelLabel,
+        modelProvider,
+        thinkingTokens,
+        images,
       };
       addMessage(newConvKey, botMsg);
 
@@ -409,7 +434,8 @@ export const ChatArea: React.FC = () => {
 
 const ProviderBadge: React.FC = () => {
   const status = getProviderStatus();
-  if (status.provider === 'offline') {
+
+  if (!status.hasClaudeKey && !status.hasGeminiKey) {
     return (
       <span className="flex items-center gap-1 text-amber-500/70">
         <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
@@ -417,18 +443,31 @@ const ProviderBadge: React.FC = () => {
       </span>
     );
   }
+
+  if (status.autoModelEnabled) {
+    const hasBoth = status.hasClaudeKey && status.hasGeminiKey;
+    return (
+      <span className="flex items-center gap-1 text-purple-400">
+        <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+        {hasBoth ? 'Auto-Select (Claude + Gemini)' : status.hasClaudeKey ? 'Auto-Select (Claude)' : 'Auto-Select (Gemini)'}
+      </span>
+    );
+  }
+
+  // Manual model selected
   if (status.provider === 'claude') {
     return (
       <span className="flex items-center gap-1 text-orange-400">
         <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-        Claude · {status.claudeModel.replace('claude-', '')}
+        Claude (manual)
       </span>
     );
   }
+
   return (
     <span className="flex items-center gap-1 text-blue-400">
       <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-      Gemini · {status.geminiModel}
+      Gemini (manual)
     </span>
   );
 };
