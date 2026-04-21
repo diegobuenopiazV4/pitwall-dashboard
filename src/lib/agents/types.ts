@@ -38,7 +38,7 @@ export interface Message {
   createdAt: string;
   // Extended metadata (opcional)
   modelUsed?: string;
-  modelProvider?: 'claude' | 'gemini';
+  modelProvider?: 'claude' | 'gemini' | 'openrouter';
   thinkingTokens?: number;
   images?: string[]; // base64 data URLs (de geracao Gemini Image)
   attachedFiles?: { name: string; type: string; size: number }[];

@@ -11,7 +11,8 @@ import { generateOfflineResponse } from '../../lib/agents/offline-responses';
 import { autoSelectAgent } from '../../lib/agents/auto-router';
 import { supabase } from '../../lib/supabase/client';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
-import { sendChat, getProviderStatus } from '../../lib/ai/chat-provider';
+import { sendChat, resolveModel, resolveModelWithOverride, getProviderStatus } from '../../lib/ai/chat-provider';
+import { listClientDocs, buildClientDocsContext } from '../../lib/clients/client-docs';
 import type { Message } from '../../lib/agents/types';
 
 export const ChatArea: React.FC = () => {
@@ -133,7 +134,6 @@ export const ChatArea: React.FC = () => {
 
     try {
       // Resolve modelo que vai ser usado (considerando preferredModelId do comando)
-      const { resolveModel, resolveModelWithOverride } = await import('../../lib/ai/chat-provider');
       const modelToUse = pendingModelId
         ? resolveModelWithOverride(pendingModelId)
         : resolveModel(userText, finalAgent.id);
@@ -142,7 +142,6 @@ export const ChatArea: React.FC = () => {
       let clientDocsContext = '';
       if (currentClient) {
         try {
-          const { listClientDocs, buildClientDocsContext } = await import('../../lib/clients/client-docs');
           const docs = await listClientDocs(userId || 'offline', currentClient.id);
           if (docs.length > 0) {
             clientDocsContext = await buildClientDocsContext(docs);
@@ -184,7 +183,7 @@ export const ChatArea: React.FC = () => {
 
       let responseText: string;
       let modelLabel: string | undefined;
-      let modelProvider: 'claude' | 'gemini' | undefined;
+      let modelProvider: 'claude' | 'gemini' | 'openrouter' | undefined;
       let thinkingTokens: number | undefined;
       let images: string[] | undefined;
 

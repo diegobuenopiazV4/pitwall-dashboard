@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Sidebar } from '../sidebar/Sidebar';
 import { ChatArea } from '../chat/ChatArea';
 import { ContextPanel } from '../context/ContextPanel';
@@ -7,14 +7,25 @@ import { ViewSwitcher } from './ViewSwitcher';
 import { SearchModal } from '../modals/SearchModal';
 import { OverviewModal } from '../modals/OverviewModal';
 import { CommandPalette } from '../modals/CommandPalette';
-import { PromptLibrary } from '../library/PromptLibrary';
-import { KanbanView } from '../views/KanbanView';
-import { AnalyticsView } from '../views/AnalyticsView';
-import { DocumentsView } from '../views/DocumentsView';
-import { CheckinView } from '../views/CheckinView';
 import { OnboardingBanner } from '../auth/OnboardingBanner';
 import { ClientDocsModal } from '../modals/ClientDocsModal';
 import { useAppStore } from '../../stores/app-store';
+
+// Lazy load views pesadas (code splitting)
+const KanbanView = lazy(() => import('../views/KanbanView').then((m) => ({ default: m.KanbanView })));
+const AnalyticsView = lazy(() => import('../views/AnalyticsView').then((m) => ({ default: m.AnalyticsView })));
+const DocumentsView = lazy(() => import('../views/DocumentsView').then((m) => ({ default: m.DocumentsView })));
+const CheckinView = lazy(() => import('../views/CheckinView').then((m) => ({ default: m.CheckinView })));
+const PromptLibrary = lazy(() => import('../library/PromptLibrary').then((m) => ({ default: m.PromptLibrary })));
+
+const ViewLoader: React.FC = () => (
+  <div className="flex-1 flex items-center justify-center bg-[#0a0a0f]">
+    <div className="flex flex-col items-center gap-2">
+      <div className="w-8 h-8 border-2 border-slate-700 border-t-red-500 rounded-full animate-spin" />
+      <p className="text-[10px] text-slate-500">Carregando view...</p>
+    </div>
+  </div>
+);
 
 export const AppLayout: React.FC = () => {
   const {
@@ -27,13 +38,29 @@ export const AppLayout: React.FC = () => {
   const renderView = () => {
     switch (viewMode) {
       case 'kanban':
-        return <KanbanView />;
+        return (
+          <Suspense fallback={<ViewLoader />}>
+            <KanbanView />
+          </Suspense>
+        );
       case 'analytics':
-        return <AnalyticsView />;
+        return (
+          <Suspense fallback={<ViewLoader />}>
+            <AnalyticsView />
+          </Suspense>
+        );
       case 'documents':
-        return <DocumentsView />;
+        return (
+          <Suspense fallback={<ViewLoader />}>
+            <DocumentsView />
+          </Suspense>
+        );
       case 'checkin':
-        return <CheckinView />;
+        return (
+          <Suspense fallback={<ViewLoader />}>
+            <CheckinView />
+          </Suspense>
+        );
       default:
         return <ChatArea />;
     }
@@ -57,7 +84,6 @@ export const AppLayout: React.FC = () => {
         open={commandPaletteOpen}
         onClose={() => setCommandPaletteOpen(false)}
         onSelectPrompt={(prompt) => {
-          // Inject prompt into a text dispatch event
           const evt = new CustomEvent('pitwall:inject-prompt', { detail: { prompt } });
           window.dispatchEvent(evt);
           setViewMode('chat');
@@ -72,15 +98,19 @@ export const AppLayout: React.FC = () => {
           setViewMode('analytics');
         }}
       />
-      <PromptLibrary
-        open={libraryOpen}
-        onClose={() => setLibraryOpen(false)}
-        onSelect={(prompt) => {
-          const evt = new CustomEvent('pitwall:inject-prompt', { detail: { prompt } });
-          window.dispatchEvent(evt);
-          setViewMode('chat');
-        }}
-      />
+      {libraryOpen && (
+        <Suspense fallback={null}>
+          <PromptLibrary
+            open={libraryOpen}
+            onClose={() => setLibraryOpen(false)}
+            onSelect={(prompt) => {
+              const evt = new CustomEvent('pitwall:inject-prompt', { detail: { prompt } });
+              window.dispatchEvent(evt);
+              setViewMode('chat');
+            }}
+          />
+        </Suspense>
+      )}
       <ClientDocsModal open={clientDocsOpen} onClose={() => setClientDocsOpen(false)} />
     </div>
   );
