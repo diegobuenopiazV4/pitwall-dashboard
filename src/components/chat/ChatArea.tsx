@@ -13,6 +13,7 @@ import { supabase } from '../../lib/supabase/client';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
 import { sendChat, resolveModel, resolveModelWithOverride, getProviderStatus } from '../../lib/ai/chat-provider';
 import { listClientDocs, buildClientDocsContext } from '../../lib/clients/client-docs';
+import { trackMessageUsage } from '../../hooks/useUsageTracking';
 import type { Message } from '../../lib/agents/types';
 
 export const ChatArea: React.FC = () => {
@@ -196,6 +197,22 @@ export const ChatArea: React.FC = () => {
 
         if (thinkingTokens && thinkingTokens > 0) {
           toast.success(`${modelLabel} pensou por ${thinkingTokens} tokens`, { duration: 2000 });
+        }
+
+        // Track usage + dispara webhooks (nao bloqueia UI)
+        try {
+          trackMessageUsage({
+            userId: userId || 'offline',
+            agentId: finalAgent.id,
+            clientId: currentClient?.id,
+            modelId: aiResult.model.apiModel,
+            modelProvider: aiResult.model.provider,
+            inputText: userText + systemPrompt,
+            outputText: responseText,
+            thinkingTokens,
+          });
+        } catch {
+          // silent
         }
       } else {
         responseText = generateOfflineResponse(userText, finalAgent, currentClient);

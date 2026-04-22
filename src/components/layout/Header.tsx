@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Search, BarChart3, Settings, LogOut, Command, Zap, Download } from 'lucide-react';
+import { Search, BarChart3, Settings, LogOut, Command, Zap, Plug, DollarSign } from 'lucide-react';
 import { useAppStore } from '../../stores/app-store';
 import { supabase } from '../../lib/supabase/client';
 import { SettingsModal } from '../modals/SettingsModal';
 import { ChainModal } from '../modals/ChainModal';
+import { IntegrationsModal } from '../modals/IntegrationsModal';
+import { UsageDashboardModal } from '../modals/UsageDashboardModal';
 import { ExportConversation } from '../chat/ExportConversation';
 
 export const Header: React.FC = () => {
   const { userName, setSearchOpen, setOverviewOpen, setCommandPaletteOpen, logout, viewMode } = useAppStore();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [chainOpen, setChainOpen] = useState(false);
+  const [integrationsOpen, setIntegrationsOpen] = useState(false);
+  const [usageOpen, setUsageOpen] = useState(false);
 
   useEffect(() => {
     const handler = () => setSettingsOpen(true);
@@ -74,6 +78,22 @@ export const Header: React.FC = () => {
           {viewMode === 'chat' && <ExportConversation />}
 
           <button
+            onClick={() => setUsageOpen(true)}
+            className="p-1.5 text-slate-500 hover:text-emerald-400 transition-colors"
+            title="Custos e uso de tokens"
+          >
+            <DollarSign size={14} />
+          </button>
+
+          <button
+            onClick={() => setIntegrationsOpen(true)}
+            className="p-1.5 text-slate-500 hover:text-purple-400 transition-colors"
+            title="Integracoes (Ekyte, Slack, Zapier)"
+          >
+            <Plug size={14} />
+          </button>
+
+          <button
             onClick={() => setSettingsOpen(true)}
             className="p-1.5 text-slate-500 hover:text-slate-300 transition-colors"
             title="Configuracoes"
@@ -95,6 +115,8 @@ export const Header: React.FC = () => {
 
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <ChainModal open={chainOpen} onClose={() => setChainOpen(false)} />
+      <IntegrationsModal open={integrationsOpen} onClose={() => setIntegrationsOpen(false)} />
+      <UsageDashboardModal open={usageOpen} onClose={() => setUsageOpen(false)} />
     </>
   );
 };
