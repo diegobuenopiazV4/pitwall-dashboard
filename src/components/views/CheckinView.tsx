@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Zap, Loader2, Eye, Upload, Sparkles, FolderOpen, Calendar, FileCode, FileDown, FileType, Cloud } from 'lucide-react';
+import { FileText, Zap, Loader2, Eye, Upload, Sparkles, FolderOpen, Calendar, FileCode, FileDown, FileType, Cloud, Share2, Copy, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppStore } from '../../stores/app-store';
 import { sendChat } from '../../lib/ai/chat-provider';
@@ -11,6 +11,8 @@ import {
   downloadCheckinDOCX,
   exportCheckinGoogleDocs,
 } from '../../lib/checkin/exporters';
+import { createPublicShare, buildShareUrl, createInMemoryShare } from '../../lib/integrations/sharing';
+import { emitEvent } from '../../lib/integrations/webhooks';
 
 type CheckinType = 'weekly' | 'monthly';
 
@@ -22,6 +24,9 @@ export const CheckinView: React.FC = () => {
   const [generating, setGenerating] = useState(false);
   const [generatedHtml, setGeneratedHtml] = useState<string | null>(null);
   const [modelUsed, setModelUsed] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleGenerate = async () => {
     if (!currentClient) {
@@ -84,6 +89,15 @@ ENTREGUE: HTML completo em um unico bloco \`\`\`html ... \`\`\` com glassmorphis
 
       setModelUsed(result.model.label);
       toast.success(`Check-in gerado com ${result.model.label}!`);
+
+      // Dispara webhook: checkin.generated
+      emitEvent('checkin.generated', {
+        clientName: currentClient.name,
+        type,
+        period,
+        modelUsed: result.model.label,
+        size: html.length,
+      }).catch(() => undefined);
     } catch (err) {
       toast.error(`Erro: ${err instanceof Error ? err.message : 'Falha na geracao'}`);
     } finally {
@@ -100,6 +114,44 @@ ENTREGUE: HTML completo em um unico bloco \`\`\`html ... \`\`\` com glassmorphis
     }
     win.document.write(generatedHtml);
     win.document.close();
+  };
+
+  const handleShare = async () => {
+    if (!generatedHtml || !currentClient) return;
+    setSharing(true);
+    try {
+      const title = `Check-in ${type === 'weekly' ? 'Semanal' : 'Mensal'} - ${currentClient.name} - ${period ?? new Date().toLocaleDateString('pt-BR')}`;
+      const share = await createPublicShare({
+        userId: userId || 'offline',
+        kind: 'checkin',
+        title,
+        content: generatedHtml,
+        contentType: 'html',
+        expiresInDays: 30,
+      });
+
+      if (share) {
+        const url = buildShareUrl(share.slug);
+        setShareUrl(url);
+        toast.success('Link publico criado! Expira em 30 dias');
+      } else {
+        // Fallback offline - abre em nova aba
+        createInMemoryShare(generatedHtml, `Check-in ${currentClient.name}`);
+        toast('Modo offline - abriu em nova aba (sem link publico)', { icon: 'ℹ️' });
+      }
+    } catch (err) {
+      toast.error('Erro ao criar share');
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const handleCopyShareUrl = async () => {
+    if (!shareUrl) return;
+    await navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    toast.success('Link copiado!');
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleExport = async (format: 'html' | 'pdf' | 'docx' | 'gdocs') => {
@@ -274,13 +326,42 @@ ENTREGUE: HTML completo em um unico bloco \`\`\`html ... \`\`\` com glassmorphis
                   {generatedHtml.length.toLocaleString()} caracteres · {generatedHtml.match(/<section|<div class="slide/g)?.length ?? 0} slides detectados
                 </div>
 
-                <button
-                  onClick={handlePreview}
-                  className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-md"
-                >
-                  <Eye size={12} />
-                  Preview em nova aba
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={handlePreview}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-md"
+                  >
+                    <Eye size={12} />
+                    Preview
+                  </button>
+                  <button
+                    onClick={handleShare}
+                    disabled={sharing}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 rounded-md disabled:opacity-50"
+                  >
+                    {sharing ? <Loader2 size={12} className="animate-spin" /> : <Share2 size={12} />}
+                    Link publico
+                  </button>
+                </div>
+
+                {shareUrl && (
+                  <div className="p-2 bg-purple-500/5 border border-purple-500/20 rounded-md flex items-center gap-2">
+                    <Share2 size={12} className="text-purple-400 shrink-0" />
+                    <input
+                      readOnly
+                      value={shareUrl}
+                      className="flex-1 bg-transparent text-[10px] text-purple-300 font-mono truncate"
+                      onFocus={(e) => e.target.select()}
+                    />
+                    <button
+                      onClick={handleCopyShareUrl}
+                      className="p-1 text-purple-400 hover:text-purple-300"
+                      title="Copiar link"
+                    >
+                      {copied ? <Check size={12} /> : <Copy size={12} />}
+                    </button>
+                  </div>
+                )}
 
                 {/* Export formats grid */}
                 <div>

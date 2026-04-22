@@ -2,16 +2,19 @@ import React, { useEffect } from 'react';
 import { useAppStore } from './stores/app-store';
 import { LoginForm } from './components/auth/LoginForm';
 import { AppLayout } from './components/layout/AppLayout';
+import { SharePage } from './components/views/SharePage';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useSupabaseSync } from './hooks/useSupabaseSync';
+import { useSupabaseRealtime } from './hooks/useSupabaseRealtime';
 import { supabase, isSupabaseConfigured } from './lib/supabase/client';
 import { Toaster } from 'react-hot-toast';
 
-const App: React.FC = () => {
+const MainApp: React.FC = () => {
   const { isAuthenticated, isLoading, setAuth, setLoading } = useAppStore();
 
   useKeyboardShortcuts();
   useSupabaseSync();
+  useSupabaseRealtime();
 
   useEffect(() => {
     // If Supabase is not configured, skip auth checks entirely and land on the login screen.
@@ -79,6 +82,28 @@ const App: React.FC = () => {
       <AppLayout />
     </>
   );
+};
+
+/**
+ * App com simple routing:
+ * - /share/:slug -> SharePage (publica, sem auth)
+ * - outras rotas -> MainApp (com auth flow completo)
+ */
+const App: React.FC = () => {
+  const sharePath = typeof window !== 'undefined'
+    ? window.location.pathname.match(/^\/share\/([a-zA-Z0-9_-]+)/i)
+    : null;
+
+  if (sharePath) {
+    return (
+      <>
+        <Toaster position="top-right" toastOptions={{ style: { background: '#1a1a24', color: '#e2e8f0', border: '1px solid #334155', fontSize: '12px' } }} />
+        <SharePage slug={sharePath[1]} />
+      </>
+    );
+  }
+
+  return <MainApp />;
 };
 
 export default App;

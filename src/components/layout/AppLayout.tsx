@@ -9,6 +9,8 @@ import { OverviewModal } from '../modals/OverviewModal';
 import { CommandPalette } from '../modals/CommandPalette';
 import { OnboardingBanner } from '../auth/OnboardingBanner';
 import { ClientDocsModal } from '../modals/ClientDocsModal';
+import { GlobalSearchModal } from '../modals/GlobalSearchModal';
+import { AccountSwitcherModal } from '../modals/AccountSwitcher';
 import { useAppStore } from '../../stores/app-store';
 
 // Lazy load views pesadas (code splitting)
@@ -30,8 +32,10 @@ const ViewLoader: React.FC = () => (
 export const AppLayout: React.FC = () => {
   const {
     searchOpen, overviewOpen, commandPaletteOpen, libraryOpen, clientDocsOpen,
+    globalSearchOpen, accountsOpen,
     viewMode, setLibraryOpen, setCommandPaletteOpen,
     setAnalyticsOpen, setSearchOpen, setOverviewOpen, setClientDocsOpen,
+    setGlobalSearchOpen, setAccountsOpen,
     setViewMode,
   } = useAppStore();
 
@@ -112,6 +116,8 @@ export const AppLayout: React.FC = () => {
         </Suspense>
       )}
       <ClientDocsModal open={clientDocsOpen} onClose={() => setClientDocsOpen(false)} />
+      <GlobalSearchModal open={globalSearchOpen} onClose={() => setGlobalSearchOpen(false)} />
+      <AccountSwitcherModal open={accountsOpen} onClose={() => setAccountsOpen(false)} />
     </div>
   );
 };

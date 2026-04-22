@@ -44,6 +44,8 @@ interface AppState {
   analyticsOpen: boolean;
   documentsLibraryOpen: boolean;
   clientDocsOpen: boolean;
+  globalSearchOpen: boolean;
+  accountsOpen: boolean;
 
   // Client docs cache (per client)
   clientDocs: Record<string, any[]>;
@@ -80,6 +82,8 @@ interface AppState {
   setDocumentsLibraryOpen: (open: boolean) => void;
   setClientDocsOpen: (open: boolean) => void;
   setClientDocs: (clientId: string, docs: any[]) => void;
+  setGlobalSearchOpen: (open: boolean) => void;
+  setAccountsOpen: (open: boolean) => void;
   getConvKey: () => string;
   getAllMessages: () => Message[];
 }
@@ -117,6 +121,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   analyticsOpen: false,
   documentsLibraryOpen: false,
   clientDocsOpen: false,
+  globalSearchOpen: false,
+  accountsOpen: false,
   clientDocs: {},
 
   setAuth: (userId, userName) => set({ userId, userName, isAuthenticated: true, isLoading: false }),
@@ -185,6 +191,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   setDocumentsLibraryOpen: (documentsLibraryOpen) => set({ documentsLibraryOpen }),
   setClientDocsOpen: (clientDocsOpen) => set({ clientDocsOpen }),
   setClientDocs: (clientId, docs) => set((s) => ({ clientDocs: { ...s.clientDocs, [clientId]: docs } })),
+  setGlobalSearchOpen: (globalSearchOpen) => set({ globalSearchOpen }),
+  setAccountsOpen: (accountsOpen) => set({ accountsOpen }),
 
   getConvKey: () => {
     const { currentAgent, currentClient } = get();

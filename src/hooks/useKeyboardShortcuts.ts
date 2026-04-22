@@ -6,6 +6,7 @@ export function useKeyboardShortcuts() {
   const {
     setSearchOpen, setOverviewOpen, selectAgent,
     setCommandPaletteOpen, setLibraryOpen, setViewMode,
+    setGlobalSearchOpen, setAccountsOpen,
   } = useAppStore();
 
   useEffect(() => {
@@ -58,6 +59,18 @@ export function useKeyboardShortcuts() {
         setViewMode('checkin');
         return;
       }
+      // Ctrl+Shift+F : Global search em mensagens
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        setGlobalSearchOpen(true);
+        return;
+      }
+      // Ctrl+Shift+W : Workspaces/Accounts
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'w') {
+        e.preventDefault();
+        setAccountsOpen(true);
+        return;
+      }
       // Ctrl+Shift+C : Chat view
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'c') {
         e.preventDefault();
@@ -77,6 +90,8 @@ export function useKeyboardShortcuts() {
         setOverviewOpen(false);
         setCommandPaletteOpen(false);
         setLibraryOpen(false);
+        setGlobalSearchOpen(false);
+        setAccountsOpen(false);
       }
     };
 

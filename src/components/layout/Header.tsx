@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, BarChart3, Settings, LogOut, Command, Zap, Plug, DollarSign } from 'lucide-react';
+import { Search, BarChart3, Settings, LogOut, Command, Zap, Plug, DollarSign, Building2, FileSearch } from 'lucide-react';
 import { useAppStore } from '../../stores/app-store';
 import { supabase } from '../../lib/supabase/client';
 import { SettingsModal } from '../modals/SettingsModal';
@@ -9,7 +9,7 @@ import { UsageDashboardModal } from '../modals/UsageDashboardModal';
 import { ExportConversation } from '../chat/ExportConversation';
 
 export const Header: React.FC = () => {
-  const { userName, setSearchOpen, setOverviewOpen, setCommandPaletteOpen, logout, viewMode } = useAppStore();
+  const { userName, setSearchOpen, setOverviewOpen, setCommandPaletteOpen, setGlobalSearchOpen, setAccountsOpen, logout, viewMode } = useAppStore();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [chainOpen, setChainOpen] = useState(false);
   const [integrationsOpen, setIntegrationsOpen] = useState(false);
@@ -55,6 +55,24 @@ export const Header: React.FC = () => {
           >
             <Search size={12} />
             <span className="hidden lg:inline">Buscar</span>
+          </button>
+
+          <button
+            onClick={() => setGlobalSearchOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] text-amber-400 bg-amber-500/10 rounded-md hover:bg-amber-500/20 transition-colors"
+            title="Buscar em mensagens (Ctrl+Shift+F)"
+          >
+            <FileSearch size={12} />
+            <span className="hidden lg:inline">Msgs</span>
+          </button>
+
+          <button
+            onClick={() => setAccountsOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] text-purple-400 bg-purple-500/10 rounded-md hover:bg-purple-500/20 transition-colors"
+            title="Workspaces (Ctrl+Shift+W)"
+          >
+            <Building2 size={12} />
+            <span className="hidden lg:inline">Workspace</span>
           </button>
 
           <button
