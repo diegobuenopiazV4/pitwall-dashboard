@@ -7,6 +7,7 @@ import { ChainModal } from '../modals/ChainModal';
 import { IntegrationsModal } from '../modals/IntegrationsModal';
 import { UsageDashboardModal } from '../modals/UsageDashboardModal';
 import { ExportConversation } from '../chat/ExportConversation';
+import { V4Logo } from '../brand/V4Logo';
 
 export const Header: React.FC = () => {
   const { userName, setSearchOpen, setOverviewOpen, setCommandPaletteOpen, setGlobalSearchOpen, setAccountsOpen, logout, viewMode } = useAppStore();
@@ -28,13 +29,10 @@ export const Header: React.FC = () => {
 
   return (
     <>
-      <header className="flex items-center justify-between px-4 py-2 bg-[#111118] border-b border-slate-800">
+      <header className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-[#0a0a0f] via-[#111118] to-[#0a0a0f] border-b border-[#e4243d]/20 shadow-lg">
         <div className="flex items-center gap-3">
-          <h1 className="text-lg font-bold tracking-tight">
-            <span className="text-red-500">V4</span>{' '}
-            <span className="text-slate-300">PIT WALL</span>
-          </h1>
-          <span className="text-[10px] px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded">v5.2</span>
+          <V4Logo size="md" showSubtitle={true} showDots={false} />
+          <span className="text-[9px] px-1.5 py-0.5 bg-[#e4243d]/10 text-[#e4243d] rounded font-semibold tracking-wider">v5.3</span>
         </div>
 
         <div className="flex items-center gap-1">

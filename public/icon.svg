@@ -1,24 +1,41 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0a0a0f"/>
+      <stop offset="0%" stop-color="#000000"/>
       <stop offset="100%" stop-color="#1a1a24"/>
     </linearGradient>
     <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#e63946"/>
+      <stop offset="0%" stop-color="#e4243d"/>
       <stop offset="100%" stop-color="#ff4d5a"/>
     </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
   <rect width="512" height="512" rx="96" fill="url(#bg)"/>
-  <rect x="48" y="48" width="416" height="416" rx="72" fill="none" stroke="url(#accent)" stroke-width="6" opacity="0.3"/>
-  <text x="50%" y="42%" text-anchor="middle" font-family="'Space Grotesk', sans-serif" font-size="140" font-weight="700" fill="url(#accent)">V4</text>
-  <text x="50%" y="62%" text-anchor="middle" font-family="'Space Grotesk', sans-serif" font-size="48" font-weight="600" fill="#e2e8f0" letter-spacing="4">PIT WALL</text>
-  <g opacity="0.6">
-    <circle cx="256" cy="380" r="4" fill="#e63946"/>
-    <circle cx="236" cy="380" r="4" fill="#448aff"/>
-    <circle cx="276" cy="380" r="4" fill="#00e676"/>
-    <circle cx="216" cy="380" r="4" fill="#ffd600"/>
-    <circle cx="296" cy="380" r="4" fill="#a855f7"/>
+  <rect x="32" y="32" width="448" height="448" rx="80" fill="none" stroke="url(#accent)" stroke-width="4" opacity="0.4"/>
+  <!-- Checkered flag pattern at top right corner -->
+  <g opacity="0.15">
+    <rect x="384" y="64" width="20" height="20" fill="#ffffff"/>
+    <rect x="424" y="64" width="20" height="20" fill="#ffffff"/>
+    <rect x="404" y="84" width="20" height="20" fill="#ffffff"/>
+    <rect x="444" y="84" width="20" height="20" fill="#ffffff"/>
+    <rect x="384" y="104" width="20" height="20" fill="#ffffff"/>
+    <rect x="424" y="104" width="20" height="20" fill="#ffffff"/>
   </g>
-  <text x="50%" y="88%" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="24" fill="#94a3b8">16 agentes IA</text>
+  <!-- V4 big -->
+  <text x="50%" y="44%" text-anchor="middle" font-family="'Space Grotesk', 'Inter', sans-serif" font-size="180" font-weight="800" fill="url(#accent)" filter="url(#glow)" letter-spacing="-4">V4</text>
+  <!-- PIT WALL -->
+  <text x="50%" y="62%" text-anchor="middle" font-family="'Space Grotesk', 'Inter', sans-serif" font-size="44" font-weight="700" fill="#f1f5f9" letter-spacing="6">PIT WALL</text>
+  <!-- Colored dots representing agents -->
+  <g opacity="0.8">
+    <circle cx="206" cy="380" r="5" fill="#e4243d"/>
+    <circle cx="226" cy="380" r="5" fill="#448aff"/>
+    <circle cx="246" cy="380" r="5" fill="#00e676"/>
+    <circle cx="266" cy="380" r="5" fill="#ffd600"/>
+    <circle cx="286" cy="380" r="5" fill="#a855f7"/>
+    <circle cx="306" cy="380" r="5" fill="#ff9100"/>
+  </g>
+  <text x="50%" y="88%" text-anchor="middle" font-family="'Inter', sans-serif" font-size="18" fill="#94a3b8" letter-spacing="2">RUSTON &amp; CO · 16 AI AGENTS</text>
 </svg>
