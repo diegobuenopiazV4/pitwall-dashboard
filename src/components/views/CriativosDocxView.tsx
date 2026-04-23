@@ -3,7 +3,8 @@ import { FileText, Download, Plus, X, Sparkles, Loader2, AlertCircle, CheckCircl
 import toast from 'react-hot-toast';
 import { useAppStore } from '../../stores/app-store';
 import { V4Logo } from '../brand/V4Logo';
-import { callClaude } from '../../lib/ai/claude-client';
+import { callAI, parseAIJson } from '../../lib/ai/universal-caller';
+import { getClaudeKey, getGeminiKey, getOpenRouterKey } from '../../lib/ai/chat-provider';
 import { generateCriativosDocx } from '../../lib/skills/criativos-docx-generator';
 
 interface Criativo {
@@ -53,9 +54,9 @@ export const CriativosDocxView: React.FC = () => {
       toast.error('Cole suas copies no campo primeiro');
       return;
     }
-    const apiKey = localStorage.getItem('v4_pitwall_claude_key') || '';
-    if (!apiKey || !apiKey.startsWith('sk-ant-')) {
-      setError('Configure sua chave Claude em Settings.');
+    const hasAnyKey = !!(getClaudeKey() || getGeminiKey() || getOpenRouterKey());
+    if (!hasAnyKey) {
+      setError('Configure ao menos 1 chave (Claude, Gemini ou OpenRouter) em Settings.');
       return;
     }
 
@@ -79,16 +80,14 @@ Retorne APENAS JSON valido, sem markdown, neste formato:
 }`;
 
     try {
-      const response = await callClaude({
+      const result = await callAI({
         systemPrompt,
         userPrompt,
         temperature: 0.3,
         maxTokens: 4096,
-      }, apiKey, 'claude-sonnet-4-6');
+      });
 
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('Resposta invalida');
-      const data = JSON.parse(jsonMatch[0]);
+      const data = parseAIJson(result.text);
 
       if (data.criativos && Array.isArray(data.criativos)) {
         const parsed = data.criativos.map((c: any, i: number) => ({
@@ -102,7 +101,7 @@ Retorne APENAS JSON valido, sem markdown, neste formato:
         }));
         setCriativos(parsed);
         setMode('manual');
-        toast.success(`${parsed.length} criativos extraidos`);
+        toast.success(`${parsed.length} criativos extraidos via ${result.provider.toUpperCase()}`);
       }
     } catch (err: any) {
       setError(err.message || 'Erro ao parsear');

@@ -3,7 +3,8 @@ import { Upload, Download, Eye, Sparkles, FileText, Loader2, AlertCircle, CheckC
 import toast from 'react-hot-toast';
 import { useAppStore } from '../../stores/app-store';
 import { V4Logo } from '../brand/V4Logo';
-import { callClaude } from '../../lib/ai/claude-client';
+import { callAI, parseAIJson } from '../../lib/ai/universal-caller';
+import { getClaudeKey, getGeminiKey, getOpenRouterKey } from '../../lib/ai/chat-provider';
 import { generateTrafegoReportHTML } from '../../lib/skills/trafego-report-template';
 
 interface CsvRow {
@@ -119,10 +120,10 @@ export const TrafegoReportView: React.FC = () => {
       return;
     }
 
-    const apiKey = localStorage.getItem('v4_pitwall_claude_key') || '';
-    if (!apiKey || !apiKey.startsWith('sk-ant-')) {
-      setError('Configure sua chave Claude em Settings primeiro.');
-      toast.error('Chave Claude nao configurada');
+    const hasAnyKey = !!(getClaudeKey() || getGeminiKey() || getOpenRouterKey());
+    if (!hasAnyKey) {
+      setError('Configure ao menos 1 chave (Claude, Gemini ou OpenRouter) em Settings.');
+      toast.error('Nenhuma chave IA configurada');
       return;
     }
 
@@ -174,17 +175,14 @@ Gere em JSON valido (e SO JSON, sem markdown):
 }`;
 
     try {
-      const response = await callClaude({
+      const result = await callAI({
         systemPrompt,
         userPrompt,
         temperature: 0.7,
         maxTokens: 4096,
-      }, apiKey, 'claude-sonnet-4-6');
+      });
 
-      // Extract JSON
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('Claude nao retornou JSON valido');
-      const analysis = JSON.parse(jsonMatch[0]);
+      const analysis = parseAIJson(result.text);
 
       const html = generateTrafegoReportHTML({
         clientName: clientName.toUpperCase(),
@@ -200,7 +198,7 @@ Gere em JSON valido (e SO JSON, sem markdown):
       });
 
       setResultHtml(html);
-      toast.success('Relatorio gerado!');
+      toast.success(`Relatorio gerado via ${result.provider.toUpperCase()}${result.fallbackUsed ? ' (fallback)' : ''}`);
     } catch (err: any) {
       setError(err.message || 'Erro ao gerar relatorio');
       toast.error('Erro ao gerar relatorio');

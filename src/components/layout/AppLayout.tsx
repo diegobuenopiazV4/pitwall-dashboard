@@ -22,6 +22,7 @@ const TrafegoReportView = lazy(() => import('../views/TrafegoReportView').then((
 const ClippingRapportView = lazy(() => import('../views/ClippingRapportView').then((m) => ({ default: m.ClippingRapportView })));
 const CriativosDocxView = lazy(() => import('../views/CriativosDocxView').then((m) => ({ default: m.CriativosDocxView })));
 const EkyteTasksView = lazy(() => import('../views/EkyteTasksView').then((m) => ({ default: m.EkyteTasksView })));
+const SkillsCatalogView = lazy(() => import('../views/SkillsCatalogView').then((m) => ({ default: m.SkillsCatalogView })));
 const PromptLibrary = lazy(() => import('../library/PromptLibrary').then((m) => ({ default: m.PromptLibrary })));
 
 const ViewLoader: React.FC = () => (
@@ -91,6 +92,12 @@ export const AppLayout: React.FC = () => {
         return (
           <Suspense fallback={<ViewLoader />}>
             <EkyteTasksView />
+          </Suspense>
+        );
+      case 'skills':
+        return (
+          <Suspense fallback={<ViewLoader />}>
+            <SkillsCatalogView />
           </Suspense>
         );
       default:

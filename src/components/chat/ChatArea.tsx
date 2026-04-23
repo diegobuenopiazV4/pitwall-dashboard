@@ -5,6 +5,7 @@ import { useAppStore } from '../../stores/app-store';
 import { MessageBubble } from './MessageBubble';
 import { QuickActions } from './QuickActions';
 import { SmartSuggestion } from './SmartSuggestion';
+import { PautaSuggestion } from './PautaSuggestion';
 import { FileUpload, type AttachedFile } from '../upload/FileUpload';
 import { buildSystemPrompt } from '../../lib/agents/system-prompt-builder';
 import { generateOfflineResponse } from '../../lib/agents/offline-responses';
@@ -325,6 +326,9 @@ export const ChatArea: React.FC = () => {
 
       {/* Smart Suggestion */}
       <SmartSuggestion />
+
+      {/* Social Pauta Suggestion (aparece para agentes 06/07/08 ou quando user digita palavras-chave) */}
+      <PautaSuggestion userInput={input} />
 
       {/* Quick Actions */}
       {currentAgent && <QuickActions actions={currentAgent.quickActions} onAction={handleQuickAction} />}

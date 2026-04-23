@@ -3,7 +3,8 @@ import { Newspaper, Download, Eye, Sparkles, Loader2, AlertCircle, CheckCircle2,
 import toast from 'react-hot-toast';
 import { useAppStore } from '../../stores/app-store';
 import { V4Logo } from '../brand/V4Logo';
-import { callClaude } from '../../lib/ai/claude-client';
+import { callAI, parseAIJson } from '../../lib/ai/universal-caller';
+import { getClaudeKey, getGeminiKey, getOpenRouterKey } from '../../lib/ai/chat-provider';
 import { generateClippingHTML } from '../../lib/skills/clipping-template';
 
 export const ClippingRapportView: React.FC = () => {
@@ -24,9 +25,9 @@ export const ClippingRapportView: React.FC = () => {
       return;
     }
 
-    const apiKey = localStorage.getItem('v4_pitwall_claude_key') || '';
-    if (!apiKey || !apiKey.startsWith('sk-ant-')) {
-      setError('Configure sua chave Claude em Settings.');
+    const hasAnyKey = !!(getClaudeKey() || getGeminiKey() || getOpenRouterKey());
+    if (!hasAnyKey) {
+      setError('Configure ao menos 1 chave (Claude, Gemini ou OpenRouter) em Settings.');
       return;
     }
 
@@ -79,16 +80,14 @@ Gere em JSON valido (SO JSON, sem markdown):
 
     try {
       setStage('composing');
-      const response = await callClaude({
+      const result = await callAI({
         systemPrompt,
         userPrompt,
         temperature: 0.85,
         maxTokens: 6000,
-      }, apiKey, 'claude-sonnet-4-6');
+      });
 
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('Claude nao retornou JSON valido');
-      const data = JSON.parse(jsonMatch[0]);
+      const data = parseAIJson(result.text);
 
       const html = generateClippingHTML({
         clientName: clientName.toUpperCase(),
@@ -99,7 +98,7 @@ Gere em JSON valido (SO JSON, sem markdown):
       });
 
       setResultHtml(html);
-      toast.success('Clipping gerado!');
+      toast.success(`Clipping gerado via ${result.provider.toUpperCase()}${result.fallbackUsed ? ' (fallback)' : ''}`);
     } catch (err: any) {
       setError(err.message || 'Erro ao gerar clipping');
     } finally {

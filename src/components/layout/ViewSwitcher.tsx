@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquare, Kanban, BarChart3, FolderOpen, Sparkles, Zap, Newspaper, FileText, Rocket } from 'lucide-react';
+import { MessageSquare, Kanban, BarChart3, FolderOpen, Sparkles, Zap, Newspaper, FileText, Rocket, Grid3x3 } from 'lucide-react';
 import { useAppStore, type ViewMode } from '../../stores/app-store';
 
 const PRIMARY_VIEWS: { id: ViewMode; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
@@ -10,6 +10,7 @@ const PRIMARY_VIEWS: { id: ViewMode; label: string; icon: React.ComponentType<{ 
 ];
 
 const SKILL_VIEWS: { id: ViewMode; label: string; icon: React.ComponentType<{ size?: number }>; color: string }[] = [
+  { id: 'skills', label: 'Catalogo', icon: Grid3x3, color: 'text-slate-300' },
   { id: 'checkin', label: 'Check-in', icon: Sparkles, color: 'text-purple-400' },
   { id: 'trafego', label: 'Trafego Pago', icon: Zap, color: 'text-amber-400' },
   { id: 'clipping', label: 'Clipping', icon: Newspaper, color: 'text-blue-400' },

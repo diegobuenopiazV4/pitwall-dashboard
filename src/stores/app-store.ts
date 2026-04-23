@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Agent, Client, Message, Task, PromptParams } from '../lib/agents/types';
 import { AGENTS } from '../lib/agents/agents-data';
 
-export type ViewMode = 'chat' | 'kanban' | 'analytics' | 'documents' | 'checkin' | 'trafego' | 'clipping' | 'criativos' | 'ekyte';
+export type ViewMode = 'chat' | 'kanban' | 'analytics' | 'documents' | 'checkin' | 'trafego' | 'clipping' | 'criativos' | 'ekyte' | 'skills';
 
 interface AppState {
   // Auth
