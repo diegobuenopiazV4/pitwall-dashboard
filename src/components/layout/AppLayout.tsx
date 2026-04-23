@@ -18,6 +18,10 @@ const KanbanView = lazy(() => import('../views/KanbanView').then((m) => ({ defau
 const AnalyticsView = lazy(() => import('../views/AnalyticsView').then((m) => ({ default: m.AnalyticsView })));
 const DocumentsView = lazy(() => import('../views/DocumentsView').then((m) => ({ default: m.DocumentsView })));
 const CheckinView = lazy(() => import('../views/CheckinView').then((m) => ({ default: m.CheckinView })));
+const TrafegoReportView = lazy(() => import('../views/TrafegoReportView').then((m) => ({ default: m.TrafegoReportView })));
+const ClippingRapportView = lazy(() => import('../views/ClippingRapportView').then((m) => ({ default: m.ClippingRapportView })));
+const CriativosDocxView = lazy(() => import('../views/CriativosDocxView').then((m) => ({ default: m.CriativosDocxView })));
+const EkyteTasksView = lazy(() => import('../views/EkyteTasksView').then((m) => ({ default: m.EkyteTasksView })));
 const PromptLibrary = lazy(() => import('../library/PromptLibrary').then((m) => ({ default: m.PromptLibrary })));
 
 const ViewLoader: React.FC = () => (
@@ -63,6 +67,30 @@ export const AppLayout: React.FC = () => {
         return (
           <Suspense fallback={<ViewLoader />}>
             <CheckinView />
+          </Suspense>
+        );
+      case 'trafego':
+        return (
+          <Suspense fallback={<ViewLoader />}>
+            <TrafegoReportView />
+          </Suspense>
+        );
+      case 'clipping':
+        return (
+          <Suspense fallback={<ViewLoader />}>
+            <ClippingRapportView />
+          </Suspense>
+        );
+      case 'criativos':
+        return (
+          <Suspense fallback={<ViewLoader />}>
+            <CriativosDocxView />
+          </Suspense>
+        );
+      case 'ekyte':
+        return (
+          <Suspense fallback={<ViewLoader />}>
+            <EkyteTasksView />
           </Suspense>
         );
       default:
