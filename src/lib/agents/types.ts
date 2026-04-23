@@ -24,9 +24,43 @@ export interface Client {
   step: StepPhase;
   pilar: Pilar;
   health: HealthScore;
+  // Novos campos estilo mkt.lab
+  slug?: string;
+  brandColor?: string; // hex
+  teamId?: string;
+  logoUrl?: string; // data URL ou Supabase Storage URL
+  notifyOnApproval?: boolean;
+  // Servicos contratados pelo cliente
+  contractedServices?: ServiceContract[];
+  // Pasta associada (File System Access API handle id)
+  folderHandle?: string;
   metadata?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
+}
+
+export type ServiceCategory =
+  | 'trafego'
+  | 'conteudo'
+  | 'design'
+  | 'social'
+  | 'seo'
+  | 'crm'
+  | 'automacao'
+  | 'web'
+  | 'video'
+  | 'cro'
+  | 'dados'
+  | 'estrategia';
+
+export interface ServiceContract {
+  id: string;
+  category: ServiceCategory;
+  name: string;
+  active: boolean;
+  monthlyBudget?: number;
+  startDate?: string;
+  notes?: string;
 }
 
 export interface Message {

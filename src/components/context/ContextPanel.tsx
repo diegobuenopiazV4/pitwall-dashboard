@@ -2,6 +2,7 @@ import React from 'react';
 import { useAppStore } from '../../stores/app-store';
 import { AEMR_PILARES, STEP_PHASES, TOC_STEPS } from '../../lib/agents/frameworks';
 import { QUALITY_RULES } from '../../lib/agents/quality-rules';
+import { ClientServicesPanel } from './ClientServicesPanel';
 import type { PromptParams } from '../../lib/agents/types';
 
 const PILAR_COLORS: Record<string, string> = {
@@ -81,7 +82,19 @@ export const ContextPanel: React.FC = () => {
       {/* Client Info */}
       {currentClient && (
         <div className="p-3 border-b border-slate-800">
-          <h3 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Cliente Ativo</h3>
+          <div className="flex items-center gap-2 mb-2">
+            <div
+              className="w-7 h-7 rounded-md flex items-center justify-center text-white font-bold text-[11px] shrink-0 overflow-hidden"
+              style={{ background: (currentClient as any).brandColor || '#334155' }}
+            >
+              {(currentClient as any).logoUrl ? (
+                <img src={(currentClient as any).logoUrl} alt="logo" className="w-full h-full object-cover" />
+              ) : (
+                currentClient.name.charAt(0).toUpperCase()
+              )}
+            </div>
+            <h3 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Cliente Ativo</h3>
+          </div>
           <div className="space-y-1 text-[10px]">
             <div className="flex justify-between"><span className="text-slate-500">Nome</span><span className="text-slate-300 font-medium">{currentClient.name}</span></div>
             <div className="flex justify-between"><span className="text-slate-500">Segmento</span><span className="text-slate-300">{currentClient.segment}</span></div>
@@ -96,9 +109,18 @@ export const ContextPanel: React.FC = () => {
                 {currentClient.health}
               </span>
             </div>
+            {(currentClient as any).slug && (
+              <div className="flex justify-between">
+                <span className="text-slate-500">URL</span>
+                <span className="text-slate-300 font-mono text-[9px]">/{(currentClient as any).slug}</span>
+              </div>
+            )}
           </div>
         </div>
       )}
+
+      {/* Servicos Contratados */}
+      {currentClient && <ClientServicesPanel />}
 
       {/* Prompt Params */}
       <div className="p-3 border-b border-slate-800">
