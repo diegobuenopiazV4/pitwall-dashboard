@@ -14,11 +14,11 @@ export type GeminiApiModel =
 
 const DEFAULT_MODEL: GeminiApiModel = 'gemini-2.5-flash';
 
-export async function callGemini(
+async function doGeminiCall(
   req: ChatRequest,
   apiKey: string,
-  model: GeminiApiModel = DEFAULT_MODEL,
-  useGoogleSearch: boolean = true
+  model: GeminiApiModel,
+  useGoogleSearch: boolean
 ): Promise<string> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
@@ -54,10 +54,40 @@ export async function callGemini(
   }
 
   const data = await res.json();
-  if (data.candidates?.[0]?.content?.parts) {
-    return data.candidates[0].content.parts.map((p: any) => p.text || '').join('');
+  const parts = data.candidates?.[0]?.content?.parts;
+  if (parts && Array.isArray(parts) && parts.length > 0) {
+    const text = parts.map((p: any) => p.text || '').join('').trim();
+    if (text) return text;
+  }
+  // Check for explicit block reasons
+  const finishReason = data.candidates?.[0]?.finishReason;
+  const blockReason = data.promptFeedback?.blockReason;
+  if (blockReason) {
+    throw new Error(`Gemini bloqueado: ${blockReason}`);
+  }
+  if (finishReason && finishReason !== 'STOP' && finishReason !== 'MAX_TOKENS') {
+    throw new Error(`Gemini finalizado com: ${finishReason}`);
   }
   throw new Error('Resposta vazia da Gemini API');
+}
+
+export async function callGemini(
+  req: ChatRequest,
+  apiKey: string,
+  model: GeminiApiModel = DEFAULT_MODEL,
+  useGoogleSearch: boolean = true
+): Promise<string> {
+  try {
+    return await doGeminiCall(req, apiKey, model, useGoogleSearch);
+  } catch (err: any) {
+    const msg = err?.message || '';
+    // Se o erro foi resposta vazia ou finishReason inesperado E usamos googleSearch,
+    // tenta de novo SEM googleSearch (as vezes grounding bloqueia prompts simples)
+    if (useGoogleSearch && (msg.includes('vazia') || msg.includes('finalizado'))) {
+      return await doGeminiCall(req, apiKey, model, false);
+    }
+    throw err;
+  }
 }
 
 /**
