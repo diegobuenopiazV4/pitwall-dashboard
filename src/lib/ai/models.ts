@@ -131,7 +131,7 @@ export const MODELS: Record<string, ModelDefinition> = {
 
   'gemini-3-1-pro': {
     id: 'gemini-3-1-pro',
-    label: 'Gemini 3.1 Pro',
+    label: 'Gemini 2.5 Pro',
     provider: 'gemini',
     apiModel: 'gemini-2.5-pro',
     category: 'frontier',
@@ -328,7 +328,7 @@ export const MODELS: Record<string, ModelDefinition> = {
 
   'gemini-3-1-flash': {
     id: 'gemini-3-1-flash',
-    label: 'Gemini 3.1 Flash',
+    label: 'Gemini 2.5 Flash',
     provider: 'gemini',
     apiModel: 'gemini-2.5-flash',
     category: 'balanced',
