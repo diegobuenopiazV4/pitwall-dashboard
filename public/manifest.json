@@ -1,0 +1,51 @@
+{
+  "name": "V4 PIT WALL - Dashboard de 16 Agentes IA",
+  "short_name": "PIT WALL",
+  "description": "Sistema de 16 Agentes de IA para operacao de marketing digital - V4 Company / Ruston Assessoria",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0a0f",
+  "theme_color": "#e63946",
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Novo Check-in",
+      "short_name": "Check-in",
+      "description": "Gerar novo check-in semanal ou mensal",
+      "url": "/?view=checkin",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Kanban de Tarefas",
+      "short_name": "Kanban",
+      "description": "Visualizar kanban de tarefas",
+      "url": "/?view=kanban",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Analytics",
+      "short_name": "Analytics",
+      "description": "Dashboard de analytics",
+      "url": "/?view=analytics",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
+}

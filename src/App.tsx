@@ -3,18 +3,44 @@ import { useAppStore } from './stores/app-store';
 import { LoginForm } from './components/auth/LoginForm';
 import { AppLayout } from './components/layout/AppLayout';
 import { SharePage } from './components/views/SharePage';
+import { OnboardingTour, shouldShowTour } from './components/auth/OnboardingTour';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useSupabaseSync } from './hooks/useSupabaseSync';
 import { useSupabaseRealtime } from './hooks/useSupabaseRealtime';
 import { supabase, isSupabaseConfigured } from './lib/supabase/client';
+import { applySeed } from './lib/demo/seed-data';
 import { Toaster } from 'react-hot-toast';
+import { useState } from 'react';
 
 const MainApp: React.FC = () => {
-  const { isAuthenticated, isLoading, setAuth, setLoading } = useAppStore();
+  const { isAuthenticated, isLoading, setAuth, setLoading, userId, tasks, messages, setTasks, setSprintWeek, setSprintGoals, setMessages } = useAppStore();
+  const [showTour, setShowTour] = useState(false);
 
   useKeyboardShortcuts();
   useSupabaseSync();
   useSupabaseRealtime();
+
+  // Detectar primeira visita apos login e mostrar tour + seed
+  useEffect(() => {
+    if (!isAuthenticated || !userId) return;
+
+    const hasExistingData = tasks.length > 0 || Object.keys(messages).length > 0;
+
+    // Aplicar seed data se vazio
+    applySeed({
+      userId,
+      setTasks,
+      setSprintWeek,
+      setSprintGoals,
+      setMessages,
+      hasExistingData,
+    });
+
+    // Mostrar tour na primeira visita
+    if (shouldShowTour()) {
+      setShowTour(true);
+    }
+  }, [isAuthenticated, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     // If Supabase is not configured, skip auth checks entirely and land on the login screen.
@@ -80,6 +106,7 @@ const MainApp: React.FC = () => {
         }}
       />
       <AppLayout />
+      {showTour && <OnboardingTour onComplete={() => setShowTour(false)} />}
     </>
   );
 };
