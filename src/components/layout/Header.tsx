@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, BarChart3, Settings, LogOut, Command, Zap, Plug, DollarSign, Building2, FileSearch } from 'lucide-react';
+import { Search, Settings, LogOut, Command, FileSearch } from 'lucide-react';
 import { useAppStore } from '../../stores/app-store';
 import { supabase } from '../../lib/supabase/client';
 import { SettingsModal } from '../modals/SettingsModal';
@@ -8,6 +8,7 @@ import { IntegrationsModal } from '../modals/IntegrationsModal';
 import { UsageDashboardModal } from '../modals/UsageDashboardModal';
 import { ExportConversation } from '../chat/ExportConversation';
 import { V4Logo } from '../brand/V4Logo';
+import { MoreMenu, Building2, Zap, BarChart3, Plug, DollarSign } from './MoreMenu';
 
 export const Header: React.FC = () => {
   const { userName, setSearchOpen, setOverviewOpen, setCommandPaletteOpen, setGlobalSearchOpen, setAccountsOpen, logout, viewMode } = useAppStore();
@@ -27,15 +28,25 @@ export const Header: React.FC = () => {
     logout();
   };
 
+  // Botoes menos usados consolidados no menu "Mais"
+  const moreMenuItems = [
+    { label: 'Workspaces', icon: Building2, onClick: () => setAccountsOpen(true), color: '#a855f7' },
+    { label: 'Multi-Agent Chain', icon: Zap, onClick: () => setChainOpen(true), color: '#a855f7' },
+    { label: 'Overview', icon: BarChart3, onClick: () => setOverviewOpen(true), shortcut: 'Ctrl+O' },
+    { label: 'Custos e Tokens', icon: DollarSign, onClick: () => setUsageOpen(true), color: '#10b981' },
+    { label: 'Integracoes', icon: Plug, onClick: () => setIntegrationsOpen(true), color: '#a855f7' },
+  ];
+
   return (
     <>
       <header className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-[#0a0a0f] via-[#111118] to-[#0a0a0f] border-b border-[#e4243d]/20 shadow-lg">
         <div className="flex items-center gap-3">
           <V4Logo size="md" showSubtitle={true} showDots={false} />
-          <span className="text-[9px] px-1.5 py-0.5 bg-[#e4243d]/10 text-[#e4243d] rounded font-semibold tracking-wider">v5.3</span>
+          <span className="text-[9px] px-1.5 py-0.5 bg-[#e4243d]/10 text-[#e4243d] rounded font-semibold tracking-wider">v5.4</span>
         </div>
 
         <div className="flex items-center gap-1">
+          {/* Botoes primarios - sempre visiveis */}
           <button
             onClick={() => setCommandPaletteOpen(true)}
             className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] text-slate-400 bg-slate-800/50 rounded-md hover:bg-slate-700 transition-colors"
@@ -64,51 +75,15 @@ export const Header: React.FC = () => {
             <span className="hidden lg:inline">Msgs</span>
           </button>
 
-          <button
-            onClick={() => setAccountsOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] text-purple-400 bg-purple-500/10 rounded-md hover:bg-purple-500/20 transition-colors"
-            title="Workspaces (Ctrl+Shift+W)"
-          >
-            <Building2 size={12} />
-            <span className="hidden lg:inline">Workspace</span>
-          </button>
-
-          <button
-            onClick={() => setChainOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] text-purple-400 bg-purple-500/10 rounded-md hover:bg-purple-500/20 transition-colors"
-            title="Multi-Agent Chain"
-          >
-            <Zap size={12} />
-            <span className="hidden lg:inline">Chain</span>
-          </button>
-
-          <button
-            onClick={() => setOverviewOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] text-slate-400 bg-slate-800/50 rounded-md hover:bg-slate-700 transition-colors"
-            title="Overview (Ctrl+O)"
-          >
-            <BarChart3 size={12} />
-            <span className="hidden lg:inline">Overview</span>
-          </button>
-
           {viewMode === 'chat' && <ExportConversation />}
 
-          <button
-            onClick={() => setUsageOpen(true)}
-            className="p-1.5 text-slate-500 hover:text-emerald-400 transition-colors"
-            title="Custos e uso de tokens"
-          >
-            <DollarSign size={14} />
-          </button>
+          {/* Menu "Mais" - consolida botoes menos usados */}
+          <MoreMenu items={moreMenuItems} />
 
-          <button
-            onClick={() => setIntegrationsOpen(true)}
-            className="p-1.5 text-slate-500 hover:text-purple-400 transition-colors"
-            title="Integracoes (Ekyte, Slack, Zapier)"
-          >
-            <Plug size={14} />
-          </button>
+          {/* Separador */}
+          <div className="w-px h-5 bg-slate-700 mx-1" />
 
+          {/* Configuracoes */}
           <button
             onClick={() => setSettingsOpen(true)}
             className="p-1.5 text-slate-500 hover:text-slate-300 transition-colors"
@@ -117,8 +92,8 @@ export const Header: React.FC = () => {
             <Settings size={14} />
           </button>
 
-          <div className="w-px h-5 bg-slate-700 mx-1" />
-          <span className="text-xs text-slate-500 max-w-[120px] truncate">{userName}</span>
+          {/* Usuario */}
+          <span className="text-xs text-slate-500 max-w-[120px] truncate ml-1">{userName}</span>
           <button
             onClick={handleLogout}
             className="p-1.5 text-slate-500 hover:text-red-400 transition-colors"

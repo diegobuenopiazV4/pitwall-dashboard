@@ -6,6 +6,7 @@ import { MessageBubble } from './MessageBubble';
 import { QuickActions } from './QuickActions';
 import { SmartSuggestion } from './SmartSuggestion';
 import { PautaSuggestion } from './PautaSuggestion';
+import { AgentSkillsBar } from './AgentSkillsBar';
 import { FileUpload, type AttachedFile } from '../upload/FileUpload';
 import { buildSystemPrompt } from '../../lib/agents/system-prompt-builder';
 import { generateOfflineResponse } from '../../lib/agents/offline-responses';
@@ -330,8 +331,11 @@ export const ChatArea: React.FC = () => {
       {/* Social Pauta Suggestion (aparece para agentes 06/07/08 ou quando user digita palavras-chave) */}
       <PautaSuggestion userInput={input} />
 
-      {/* Quick Actions */}
+      {/* Quick Actions (1600 comandos) */}
       {currentAgent && <QuickActions actions={currentAgent.quickActions} onAction={handleQuickAction} />}
+
+      {/* Skills V4 relacionadas ao agente */}
+      <AgentSkillsBar onInjectPrompt={(p) => setInput(p)} />
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">

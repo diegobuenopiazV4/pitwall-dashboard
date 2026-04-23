@@ -133,6 +133,87 @@ export function resolveModelWithOverride(modelId: string): ModelDefinition | nul
   return model;
 }
 
+/**
+ * Executa a chamada real para o provider correspondente ao modelo.
+ */
+async function executeModelCall(model: ModelDefinition, req: ChatRequest): Promise<ChatResult> {
+  if (model.provider === 'claude') {
+    const key = getClaudeKey();
+    if (!key) throw new Error('Claude key nao configurada');
+
+    if (model.supportsExtendedThinking && model.category === 'reasoning') {
+      const { text, thinkingTokens } = await callClaudeWithThinking(req, key, model.apiModel as ClaudeApiModel);
+      return { text, model, thinkingTokens };
+    }
+    const text = await callClaude(req, key, model.apiModel as ClaudeApiModel);
+    return { text, model };
+  }
+
+  if (model.provider === 'gemini') {
+    const key = getGeminiKey();
+    if (!key) throw new Error('Gemini key nao configurada');
+
+    if (model.supportsImageGen) {
+      const { text, images } = await callGeminiImage(req, key, model.apiModel);
+      return { text, model, images };
+    }
+    const text = await callGemini(req, key, model.apiModel as GeminiApiModel, model.supportsGoogleSearch);
+    return { text, model };
+  }
+
+  if (model.provider === 'openrouter') {
+    const key = getOpenRouterKey();
+    if (!key) throw new Error('OpenRouter key nao configurada');
+    const text = await callOpenRouter(req, key, model.apiModel as OpenRouterModel);
+    return { text, model };
+  }
+
+  throw new Error(`Provider desconhecido: ${model.provider}`);
+}
+
+/**
+ * Identifica se o erro justifica tentar outro provider (billing, auth, rate limit, rede).
+ */
+function isFallbackWorthy(err: any): boolean {
+  const msg = (err?.message || String(err)).toLowerCase();
+  return (
+    msg.includes('credit') ||
+    msg.includes('balance') ||
+    msg.includes('insufficient') ||
+    msg.includes('401') ||
+    msg.includes('403') ||
+    msg.includes('429') ||
+    msg.includes('503') ||
+    msg.includes('timeout') ||
+    msg.includes('network') ||
+    msg.includes('fetch')
+  );
+}
+
+/**
+ * Encontra o melhor modelo alternativo do provider oposto.
+ */
+function findFallbackModel(excludeProvider: APIProvider): ModelDefinition | null {
+  const status = getStatus();
+  const preferences: Record<APIProvider, string> = {
+    claude: 'claude-sonnet-4-6',
+    gemini: 'gemini-3-1-flash',
+    openrouter: 'gpt-5-4-mini',
+  };
+
+  const order: APIProvider[] = ['claude', 'gemini', 'openrouter'].filter((p) => p !== excludeProvider) as APIProvider[];
+
+  for (const prov of order) {
+    const hasKey = prov === 'claude' ? status.hasClaudeKey
+                 : prov === 'gemini' ? status.hasGeminiKey
+                 : status.hasOpenRouterKey;
+    if (hasKey && MODELS[preferences[prov]]) {
+      return MODELS[preferences[prov]];
+    }
+  }
+  return null;
+}
+
 export async function sendChat(req: ChatRequest & { agentId?: string; overrideModelId?: string }): Promise<ChatResult | null> {
   const model = req.overrideModelId
     ? resolveModelWithOverride(req.overrideModelId)
@@ -150,38 +231,44 @@ export async function sendChat(req: ChatRequest & { agentId?: string; overrideMo
     maxTokens: Math.min(req.maxTokens ?? model.maxOutput, model.maxOutput),
   };
 
-  if (model.provider === 'claude') {
-    const key = getClaudeKey();
-    if (!key) throw new Error('Claude key nao configurada');
+  try {
+    return await executeModelCall(model, enhancedReq);
+  } catch (err) {
+    // Se o erro for de billing/auth/rede, tenta fallback automatico para outro provider
+    if (!isFallbackWorthy(err)) throw err;
 
-    if (model.supportsExtendedThinking && model.category === 'reasoning') {
-      const { text, thinkingTokens } = await callClaudeWithThinking(enhancedReq, key, model.apiModel as ClaudeApiModel);
-      return { text, model, thinkingTokens };
+    const fallbackModel = findFallbackModel(model.provider);
+    if (!fallbackModel) throw err;
+
+    // Re-aplica systemPromptStyle do modelo fallback
+    let fallbackSystemPrompt = req.systemPrompt;
+    if (fallbackModel.systemPromptStyle) {
+      fallbackSystemPrompt = `${fallbackModel.systemPromptStyle}\n\n---\n\n${fallbackSystemPrompt}`;
     }
-    const text = await callClaude(enhancedReq, key, model.apiModel as ClaudeApiModel);
-    return { text, model };
-  }
+    const fallbackReq: ChatRequest = {
+      ...req,
+      systemPrompt: fallbackSystemPrompt,
+      maxTokens: Math.min(req.maxTokens ?? fallbackModel.maxOutput, fallbackModel.maxOutput),
+    };
 
-  if (model.provider === 'gemini') {
-    const key = getGeminiKey();
-    if (!key) throw new Error('Gemini key nao configurada');
+    try {
+      const result = await executeModelCall(fallbackModel, fallbackReq);
+      // Anexa indicacao de fallback no label
+      return { ...result, model: { ...fallbackModel, label: `${fallbackModel.label} (fallback de ${model.label})` } };
+    } catch (fbErr) {
+      // Se o fallback tambem falhar, tenta o ultimo provider restante
+      const secondFallback = findFallbackModel(fallbackModel.provider);
+      if (!secondFallback || secondFallback.provider === model.provider) throw fbErr;
 
-    if (model.supportsImageGen) {
-      const { text, images } = await callGeminiImage(enhancedReq, key, model.apiModel);
-      return { text, model, images };
+      let secSystemPrompt = req.systemPrompt;
+      if (secondFallback.systemPromptStyle) {
+        secSystemPrompt = `${secondFallback.systemPromptStyle}\n\n---\n\n${secSystemPrompt}`;
+      }
+      const secReq: ChatRequest = { ...req, systemPrompt: secSystemPrompt, maxTokens: Math.min(req.maxTokens ?? secondFallback.maxOutput, secondFallback.maxOutput) };
+      const result = await executeModelCall(secondFallback, secReq);
+      return { ...result, model: { ...secondFallback, label: `${secondFallback.label} (2x fallback)` } };
     }
-    const text = await callGemini(enhancedReq, key, model.apiModel as GeminiApiModel, model.supportsGoogleSearch);
-    return { text, model };
   }
-
-  if (model.provider === 'openrouter') {
-    const key = getOpenRouterKey();
-    if (!key) throw new Error('OpenRouter key nao configurada');
-    const text = await callOpenRouter(enhancedReq, key, model.apiModel as OpenRouterModel);
-    return { text, model };
-  }
-
-  return null;
 }
 
 // Legacy compat
