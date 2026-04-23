@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Agent, Client, Message, Task, PromptParams } from '../lib/agents/types';
 import { AGENTS } from '../lib/agents/agents-data';
 
@@ -88,7 +89,7 @@ interface AppState {
   getAllMessages: () => Message[];
 }
 
-export const useAppStore = create<AppState>((set, get) => ({
+export const useAppStore = create<AppState>()(persist((set, get) => ({
   userId: null,
   userName: '',
   isAuthenticated: false,
@@ -206,5 +207,30 @@ export const useAppStore = create<AppState>((set, get) => ({
   getAllMessages: () => {
     const { messages } = get();
     return Object.values(messages).flat();
+  },
+}), {
+  name: 'v4-pitwall-store',
+  storage: createJSONStorage(() => localStorage),
+  // Persiste apenas dados de conteudo; UI state (modals, loading) nao persiste
+  partialize: (state) => ({
+    clients: state.clients,
+    messages: state.messages,
+    tasks: state.tasks,
+    sprintWeek: state.sprintWeek,
+    sprintGoals: state.sprintGoals,
+    ppFlags: state.ppFlags,
+    autoRouterEnabled: state.autoRouterEnabled,
+    chainMode: state.chainMode,
+    bookmarks: Array.from(state.bookmarks), // Set nao serializa
+    currentAgent: state.currentAgent,
+    currentClient: state.currentClient,
+    sidebarTab: state.sidebarTab,
+    viewMode: state.viewMode,
+  }),
+  // Restaura bookmarks de array para Set
+  onRehydrateStorage: () => (state) => {
+    if (state && Array.isArray(state.bookmarks)) {
+      state.bookmarks = new Set(state.bookmarks);
+    }
   },
 }));
