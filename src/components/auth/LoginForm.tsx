@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Sparkles, Users, Zap, Rocket, ArrowRight, Info } from 'lucide-react';
 import { supabase } from '../../lib/supabase/client';
 import { useAppStore } from '../../stores/app-store';
+import { getTotalCommandsCount } from '../../lib/prompts/command-generator';
 
 const supabaseConfigured = !!(
   import.meta.env.VITE_SUPABASE_URL &&
@@ -57,7 +58,14 @@ export const LoginForm: React.FC = () => {
       setError('Digite seu nome para comecar');
       return;
     }
-    setAuth('offline', name.trim());
+    // Persiste offline auth para sobreviver reload
+    const offlineUserId = `offline-${name.trim().toLowerCase().replace(/\s+/g, '-')}`;
+    localStorage.setItem('v4_pitwall_offline_auth', JSON.stringify({
+      userId: offlineUserId,
+      userName: name.trim(),
+      timestamp: Date.now(),
+    }));
+    setAuth(offlineUserId, name.trim());
   };
 
   return (
@@ -86,7 +94,7 @@ export const LoginForm: React.FC = () => {
         <div className="grid grid-cols-3 gap-2 mb-6">
           <Feature icon={<Users size={12} />} label="Multi-usuario" />
           <Feature icon={<Zap size={12} />} label="400+ modelos IA" />
-          <Feature icon={<Rocket size={12} />} label="112 comandos" />
+          <Feature icon={<Rocket size={12} />} label={`${getTotalCommandsCount()}+ comandos`} />
         </div>
 
         {/* Mode Selector */}

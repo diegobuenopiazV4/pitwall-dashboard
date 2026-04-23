@@ -13,7 +13,27 @@ export function useSupabaseSync() {
   const { userId, isAuthenticated, setClients, setTasks, setMessages } = useAppStore();
 
   useEffect(() => {
-    if (!isAuthenticated || !userId || userId === 'offline') return;
+    if (!isAuthenticated || !userId) return;
+
+    // Offline mode: popula clientes demo se vazio
+    if (userId === 'offline' || userId.startsWith('offline-')) {
+      const existingClients = useAppStore.getState().clients;
+      if (existingClients.length === 0) {
+        const mem = DEFAULT_CLIENTS.map((c) => ({
+          id: crypto.randomUUID(),
+          userId,
+          name: c.name,
+          segment: c.segment,
+          step: c.step,
+          pilar: c.pilar,
+          health: c.health,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }));
+        setClients(mem);
+      }
+      return;
+    }
 
     const load = async () => {
       try {

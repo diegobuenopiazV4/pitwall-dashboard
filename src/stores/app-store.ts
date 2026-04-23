@@ -126,10 +126,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   clientDocs: {},
 
   setAuth: (userId, userName) => set({ userId, userName, isAuthenticated: true, isLoading: false }),
-  logout: () => set({
-    userId: null, userName: '', isAuthenticated: false,
-    clients: [], messages: {}, tasks: [], bookmarks: new Set(),
-  }),
+  logout: () => {
+    // Limpa offline auth persistente para nao re-logar sozinho
+    try { localStorage.removeItem('v4_pitwall_offline_auth'); } catch {}
+    set({
+      userId: null, userName: '', isAuthenticated: false,
+      clients: [], messages: {}, tasks: [], bookmarks: new Set(),
+    });
+  },
   setLoading: (isLoading) => set({ isLoading }),
 
   selectAgent: (agentId) => {

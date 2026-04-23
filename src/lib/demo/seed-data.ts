@@ -6,14 +6,14 @@
 
 import type { Task, Message } from '../agents/types';
 
-const SEED_KEY = 'v4_pitwall_demo_seeded';
+const SEED_KEY_PREFIX = 'v4_pitwall_demo_seeded_';
 
-export function hasBeenSeeded(): boolean {
-  return localStorage.getItem(SEED_KEY) === 'true';
+export function hasBeenSeeded(userId: string = 'offline'): boolean {
+  return localStorage.getItem(SEED_KEY_PREFIX + userId) === 'true';
 }
 
-export function markSeeded(): void {
-  localStorage.setItem(SEED_KEY, 'true');
+export function markSeeded(userId: string = 'offline'): void {
+  localStorage.setItem(SEED_KEY_PREFIX + userId, 'true');
 }
 
 export function generateSeedTasks(userId: string, clientId?: string): Task[] {
@@ -162,7 +162,8 @@ export function applySeed(params: {
   setMessages: (key: string, messages: Message[]) => void;
   hasExistingData: boolean;
 }): void {
-  if (hasBeenSeeded() || params.hasExistingData) return;
+  // Seed por user - cada user tem seus propios dados demo
+  if (hasBeenSeeded(params.userId) || params.hasExistingData) return;
 
   // Tasks demo
   const tasks = generateSeedTasks(params.userId, params.clientId);
@@ -177,5 +178,5 @@ export function applySeed(params: {
   const welcome = generateWelcomeMessage('01', 'Mestre Estrategista');
   params.setMessages('01_general', [welcome]);
 
-  markSeeded();
+  markSeeded(params.userId);
 }

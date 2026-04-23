@@ -43,13 +43,31 @@ const MainApp: React.FC = () => {
   }, [isAuthenticated, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    // If Supabase is not configured, skip auth checks entirely and land on the login screen.
+    // 1. Tenta recuperar offline auth do localStorage (persistencia entre reloads)
+    try {
+      const offlineRaw = localStorage.getItem('v4_pitwall_offline_auth');
+      if (offlineRaw) {
+        const offline = JSON.parse(offlineRaw);
+        if (offline.userId && offline.userName) {
+          // Auto-login offline se menos de 30 dias
+          const age = Date.now() - (offline.timestamp ?? 0);
+          if (age < 30 * 24 * 3600 * 1000) {
+            setAuth(offline.userId, offline.userName);
+            return; // nao checa Supabase se ja logado offline
+          }
+        }
+      }
+    } catch {
+      // silent
+    }
+
+    // 2. If Supabase is not configured, skip auth checks entirely and land on the login screen.
     if (!isSupabaseConfigured) {
       setLoading(false);
       return;
     }
 
-    // Check existing session
+    // 3. Check existing Supabase session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setAuth(session.user.id, session.user.user_metadata?.full_name || session.user.email || '');
