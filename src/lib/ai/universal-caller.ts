@@ -6,10 +6,11 @@
 import { callClaude } from './claude-client';
 import { callGemini } from './gemini-client';
 import { callOpenRouter } from './openrouter-client';
-import { getClaudeKey, getGeminiKey, getOpenRouterKey } from './chat-provider';
+import { callGroq } from './groq-client';
+import { getClaudeKey, getGeminiKey, getOpenRouterKey, getGroqKey } from './chat-provider';
 import type { ChatRequest } from './types';
 
-export type AIProvider = 'claude' | 'gemini' | 'openrouter';
+export type AIProvider = 'claude' | 'gemini' | 'openrouter' | 'groq';
 
 export interface UniversalAIResult {
   text: string;
@@ -30,7 +31,8 @@ export interface UniversalAIOptions {
 
 const DEFAULT_MODELS: Record<AIProvider, string> = {
   claude: 'claude-sonnet-4-6',
-  gemini: 'gemini-2.5-pro', // Pro em vez de Flash - qualidade sobre velocidade
+  gemini: 'gemini-3.1-pro',
+  groq: 'llama-3.3-70b-versatile',
   openrouter: 'openai/gpt-5.4',
 };
 
@@ -42,7 +44,7 @@ export async function callAI(
   req: ChatRequest,
   options: UniversalAIOptions = {}
 ): Promise<UniversalAIResult> {
-  const order = options.preferOrder || ['claude', 'gemini', 'openrouter'];
+  const order = options.preferOrder || ['claude', 'gemini', 'groq', 'openrouter'];
   const models = { ...DEFAULT_MODELS, ...(options.models || {}) };
 
   const attempts: string[] = [];
@@ -51,6 +53,7 @@ export async function callAI(
   for (const provider of order) {
     const key = provider === 'claude' ? getClaudeKey()
               : provider === 'gemini' ? getGeminiKey()
+              : provider === 'groq' ? getGroqKey()
               : getOpenRouterKey();
 
     if (!key) {
@@ -66,6 +69,8 @@ export async function callAI(
         text = await callClaude(req, key, model as any);
       } else if (provider === 'gemini') {
         text = await callGemini(req, key, model as any, false);
+      } else if (provider === 'groq') {
+        text = await callGroq(req, key, model as any);
       } else {
         text = await callOpenRouter(req, key, model as any);
       }

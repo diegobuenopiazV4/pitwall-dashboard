@@ -6,6 +6,7 @@
 import { callClaude, callClaudeWithThinking, type ClaudeApiModel } from './claude-client';
 import { callGemini, callGeminiImage, type GeminiApiModel } from './gemini-client';
 import { callOpenRouter, type OpenRouterModel } from './openrouter-client';
+import { callGroq, type GroqApiModel } from './groq-client';
 import { MODELS, autoSelectModel, type ModelDefinition, type APIProvider } from './models';
 import type { ChatRequest } from './types';
 
@@ -13,6 +14,7 @@ export const LS_KEYS = {
   claudeKey: 'v4_pitwall_claude_key',
   geminiKey: 'v4_pitwall_gemini_key',
   openrouterKey: 'v4_pitwall_openrouter_key',
+  groqKey: 'v4_pitwall_groq_key',
   selectedModel: 'v4_pitwall_selected_model',
   autoModelEnabled: 'v4_pitwall_auto_model_enabled',
 } as const;
@@ -21,6 +23,7 @@ export interface AIStatus {
   hasClaudeKey: boolean;
   hasGeminiKey: boolean;
   hasOpenRouterKey: boolean;
+  hasGroqKey: boolean;
   selectedModelId: string | null;
   autoModelEnabled: boolean;
 }
@@ -37,6 +40,7 @@ export function getStatus(): AIStatus {
     hasClaudeKey: !!getClaudeKey(),
     hasGeminiKey: !!getGeminiKey(),
     hasOpenRouterKey: !!getOpenRouterKey(),
+    hasGroqKey: !!getGroqKey(),
     selectedModelId: localStorage.getItem(LS_KEYS.selectedModel),
     autoModelEnabled: localStorage.getItem(LS_KEYS.autoModelEnabled) !== 'false',
   };
@@ -99,6 +103,9 @@ export function getGeminiKey(): string {
 export function getOpenRouterKey(): string {
   return (window as any).__OPENROUTER_KEY__ || localStorage.getItem(LS_KEYS.openrouterKey) || (import.meta.env as any).VITE_OPENROUTER_API_KEY || '';
 }
+export function getGroqKey(): string {
+  return (window as any).__GROQ_KEY__ || localStorage.getItem(LS_KEYS.groqKey) || (import.meta.env as any).VITE_GROQ_API_KEY || '';
+}
 
 export function setClaudeKey(key: string): void {
   if (key) {
@@ -127,6 +134,15 @@ export function setOpenRouterKey(key: string): void {
     delete (window as any).__OPENROUTER_KEY__;
   }
 }
+export function setGroqKey(key: string): void {
+  if (key) {
+    localStorage.setItem(LS_KEYS.groqKey, key);
+    (window as any).__GROQ_KEY__ = key;
+  } else {
+    localStorage.removeItem(LS_KEYS.groqKey);
+    delete (window as any).__GROQ_KEY__;
+  }
+}
 
 export function setSelectedModel(modelId: string | null): void {
   if (modelId) localStorage.setItem(LS_KEYS.selectedModel, modelId);
@@ -139,50 +155,50 @@ export function setAutoModelEnabled(enabled: boolean): void {
 export function resolveModel(userPrompt: string, agentId: string): ModelDefinition | null {
   const status = getStatus();
 
-  // Providers bloqueados (billing/auth conhecidos recentes) - pula automaticamente
+  // Providers bloqueados (billing/auth/rate-limit conhecidos recentes) - pula automaticamente
   const claudeBlocked = isProviderBlocked('claude');
   const geminiBlocked = isProviderBlocked('gemini');
   const openrouterBlocked = isProviderBlocked('openrouter');
+  const groqBlocked = isProviderBlocked('groq');
 
   const claudeUsable = status.hasClaudeKey && !claudeBlocked;
   const geminiUsable = status.hasGeminiKey && !geminiBlocked;
   const openrouterUsable = status.hasOpenRouterKey && !openrouterBlocked;
+  const groqUsable = status.hasGroqKey && !groqBlocked;
 
   if (status.autoModelEnabled) {
-    const selected = autoSelectModel(userPrompt, agentId, claudeUsable, geminiUsable, openrouterUsable);
+    const selected = autoSelectModel(userPrompt, agentId, claudeUsable, geminiUsable, openrouterUsable || groqUsable);
     if (selected) return selected;
   }
 
   if (status.selectedModelId) {
     const model = MODELS[status.selectedModelId];
     if (model) {
-      if (model.provider === 'claude' && !claudeUsable) {
-        // Modelo preferido indisponivel - fallback silencioso para Gemini
-        if (geminiUsable) return MODELS['gemini-3-1-flash'];
-        if (openrouterUsable) return MODELS['gpt-5-4-mini'];
-        return null;
-      }
-      if (model.provider === 'gemini' && !geminiUsable) {
-        if (claudeUsable) return MODELS['claude-sonnet-4-6'];
-        if (openrouterUsable) return MODELS['gpt-5-4-mini'];
-        return null;
-      }
-      if (model.provider === 'openrouter' && !openrouterUsable) {
-        if (claudeUsable) return MODELS['claude-sonnet-4-6'];
-        if (geminiUsable) return MODELS['gemini-3-1-flash'];
-        return null;
-      }
-      return model;
+      const providerOK = (
+        (model.provider === 'claude' && claudeUsable) ||
+        (model.provider === 'gemini' && geminiUsable) ||
+        (model.provider === 'openrouter' && openrouterUsable) ||
+        (model.provider === 'groq' && groqUsable)
+      );
+      if (providerOK) return model;
+      // Fallback silencioso
+      if (claudeUsable) return MODELS['claude-sonnet-4-6'];
+      if (geminiUsable) return MODELS['gemini-3-1-pro'];
+      if (groqUsable) return MODELS['groq-llama-3-3-70b'];
+      if (openrouterUsable) return MODELS['gpt-5-4-mini'];
+      return null;
     }
   }
 
-  // Ordem de preferencia default considerando providers nao bloqueados
+  // Ordem de preferencia default: qualidade > velocidade > custo
   if (claudeUsable) return MODELS['claude-sonnet-4-6'];
-  if (geminiUsable) return MODELS['gemini-3-1-flash'];
+  if (geminiUsable) return MODELS['gemini-3-1-pro'];
+  if (groqUsable) return MODELS['groq-llama-3-3-70b']; // Fast + quality fallback
   if (openrouterUsable) return MODELS['gpt-5-4-mini'];
-  // Se todos bloqueados mas com chaves, tenta mesmo assim (pode ter liberado)
+  // Se todos bloqueados mas com chaves, tenta mesmo assim
   if (status.hasClaudeKey) return MODELS['claude-sonnet-4-6'];
   if (status.hasGeminiKey) return MODELS['gemini-3-1-pro'];
+  if (status.hasGroqKey) return MODELS['groq-llama-3-3-70b'];
   if (status.hasOpenRouterKey) return MODELS['gpt-5-4-mini'];
   return null;
 }
@@ -253,6 +269,13 @@ async function executeModelCall(model: ModelDefinition, req: ChatRequest): Promi
     return { text, model };
   }
 
+  if (model.provider === 'groq') {
+    const key = getGroqKey();
+    if (!key) throw new Error('Groq key nao configurada');
+    const text = await callGroq(req, key, model.apiModel as GroqApiModel);
+    return { text, model };
+  }
+
   throw new Error(`Provider desconhecido: ${model.provider}`);
 }
 
@@ -285,15 +308,17 @@ function findFallbackModel(excludeProvider: APIProvider): ModelDefinition | null
     claude: 'claude-sonnet-4-6',
     gemini: 'gemini-3-1-pro', // Pro com reasoning - prefere qualidade em vez de velocidade
     openrouter: 'gpt-5-4-mini',
+    groq: 'groq-llama-3-3-70b', // Llama 3.3 70B - fast fallback
   };
 
-  const candidates: APIProvider[] = (['claude', 'gemini', 'openrouter'] as APIProvider[]).filter((p) => p !== excludeProvider);
+  const candidates: APIProvider[] = (['claude', 'gemini', 'groq', 'openrouter'] as APIProvider[]).filter((p) => p !== excludeProvider);
   // Prioriza providers que tem chave E nao estao bloqueados
   const usable: APIProvider[] = [];
   const blocked: APIProvider[] = [];
   for (const prov of candidates) {
     const hasKey = prov === 'claude' ? status.hasClaudeKey
                  : prov === 'gemini' ? status.hasGeminiKey
+                 : prov === 'groq' ? status.hasGroqKey
                  : status.hasOpenRouterKey;
     if (!hasKey) continue;
     if (isProviderBlocked(prov)) blocked.push(prov);
@@ -381,10 +406,11 @@ export async function sendChat(req: ChatRequest & { agentId?: string; overrideMo
 export function getProviderStatus() {
   const s = getStatus();
   return {
-    provider: s.hasClaudeKey ? 'claude' : s.hasGeminiKey ? 'gemini' : s.hasOpenRouterKey ? 'openrouter' : 'offline',
+    provider: s.hasClaudeKey ? 'claude' : s.hasGeminiKey ? 'gemini' : s.hasGroqKey ? 'groq' : s.hasOpenRouterKey ? 'openrouter' : 'offline',
     hasClaudeKey: s.hasClaudeKey,
     hasGeminiKey: s.hasGeminiKey,
     hasOpenRouterKey: s.hasOpenRouterKey,
+    hasGroqKey: s.hasGroqKey,
     selectedModelId: s.selectedModelId,
     autoModelEnabled: s.autoModelEnabled,
     claudeModel: 'claude-sonnet-4-5' as const,

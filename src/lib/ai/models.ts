@@ -4,7 +4,7 @@
  * Sistema "Virtual Models" estilo Perplexity MAX com auto-selecao.
  */
 
-export type APIProvider = 'claude' | 'gemini' | 'openrouter';
+export type APIProvider = 'claude' | 'gemini' | 'openrouter' | 'groq';
 
 export interface ModelDefinition {
   id: string;
@@ -147,6 +147,86 @@ export const MODELS: Record<string, ModelDefinition> = {
     idealFor: ['reasoning complexo', 'multimodal', 'grandes contextos', 'agentic workflows', 'raciocinio'],
     costTier: 4,
     badge: 'LATEST',
+  },
+
+  // ========= GROQ (ULTRA FAST OPEN-SOURCE) =========
+
+  'groq-llama-3-3-70b': {
+    id: 'groq-llama-3-3-70b',
+    label: 'Llama 3.3 70B (Groq)',
+    provider: 'groq',
+    apiModel: 'llama-3.3-70b-versatile',
+    category: 'balanced',
+    description: 'Llama 3.3 70B via Groq. Latencia < 1s, 500+ tokens/s. Quality quase GPT-4. Free tier generoso. 131k ctx.',
+    contextWindow: 131072,
+    maxOutput: 32768,
+    supportsExtendedThinking: false,
+    supportsVision: false,
+    supportsAudio: false,
+    supportsVideo: false,
+    supportsGoogleSearch: false,
+    supportsImageGen: false,
+    idealFor: ['respostas rapidas', 'fallback confiavel', 'alta cadencia', 'open-source quality'],
+    costTier: 1,
+    badge: 'FAST',
+  },
+
+  'groq-llama-3-1-8b': {
+    id: 'groq-llama-3-1-8b',
+    label: 'Llama 3.1 8B Instant (Groq)',
+    provider: 'groq',
+    apiModel: 'llama-3.1-8b-instant',
+    category: 'fast',
+    description: 'Modelo mais rapido do Groq (500+ tok/s). Use para tarefas simples de alta cadencia.',
+    contextWindow: 131072,
+    maxOutput: 8192,
+    supportsExtendedThinking: false,
+    supportsVision: false,
+    supportsAudio: false,
+    supportsVideo: false,
+    supportsGoogleSearch: false,
+    supportsImageGen: false,
+    idealFor: ['respostas instantaneas', 'scripts simples', 'classificacao'],
+    costTier: 1,
+  },
+
+  'groq-deepseek-r1': {
+    id: 'groq-deepseek-r1',
+    label: 'DeepSeek R1 70B (Groq, reasoning)',
+    provider: 'groq',
+    apiModel: 'deepseek-r1-distill-llama-70b',
+    category: 'reasoning',
+    description: 'DeepSeek R1 com reasoning distillado em Llama 70B, via Groq. Rapido E com thinking.',
+    contextWindow: 131072,
+    maxOutput: 32768,
+    supportsExtendedThinking: true,
+    supportsVision: false,
+    supportsAudio: false,
+    supportsVideo: false,
+    supportsGoogleSearch: false,
+    supportsImageGen: false,
+    idealFor: ['raciocinio rapido', 'matematica', 'codigo', 'analise'],
+    costTier: 1,
+    badge: 'REASONING',
+  },
+
+  'groq-mixtral': {
+    id: 'groq-mixtral',
+    label: 'Mixtral 8x7B (Groq)',
+    provider: 'groq',
+    apiModel: 'mixtral-8x7b-32768',
+    category: 'balanced',
+    description: 'Mixtral 8x7B MoE via Groq. 32k contexto. Alternativa classica ao Llama.',
+    contextWindow: 32768,
+    maxOutput: 8192,
+    supportsExtendedThinking: false,
+    supportsVision: false,
+    supportsAudio: false,
+    supportsVideo: false,
+    supportsGoogleSearch: false,
+    supportsImageGen: false,
+    idealFor: ['geracao equilibrada', 'portugues', 'tarefas gerais'],
+    costTier: 1,
   },
 
   'claude-opus-4-5': {

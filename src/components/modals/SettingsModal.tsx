@@ -8,11 +8,13 @@ import {
   setClaudeKey as saveClaudeKey,
   setGeminiKey as saveGeminiKey,
   setOpenRouterKey as saveOpenRouterKey,
+  setGroqKey as saveGroqKey,
   setSelectedModel,
   setAutoModelEnabled,
   getClaudeKey,
   getGeminiKey,
   getOpenRouterKey,
+  getGroqKey,
   clearProviderErrors,
   getProviderErrors,
 } from '../../lib/ai/chat-provider';
@@ -28,6 +30,8 @@ export const SettingsModal: React.FC<Props> = ({ open, onClose }) => {
   const [claudeKey, setClaudeKeyLocal] = useState('');
   const [geminiKey, setGeminiKeyLocal] = useState('');
   const [openrouterKey, setOpenRouterKeyLocal] = useState('');
+  const [groqKey, setGroqKeyLocal] = useState('');
+  const [showGroqKey, setShowGroqKey] = useState(false);
   const [showClaudeKey, setShowClaudeKey] = useState(false);
   const [showGeminiKey, setShowGeminiKey] = useState(false);
   const [showOpenRouterKey, setShowOpenRouterKey] = useState(false);
@@ -41,6 +45,7 @@ export const SettingsModal: React.FC<Props> = ({ open, onClose }) => {
       setClaudeKeyLocal(getClaudeKey());
       setGeminiKeyLocal(getGeminiKey());
       setOpenRouterKeyLocal(getOpenRouterKey());
+      setGroqKeyLocal(getGroqKey());
       setAutoModel(status.autoModelEnabled);
       setSelectedModelIdLocal(status.selectedModelId);
     }
@@ -50,6 +55,7 @@ export const SettingsModal: React.FC<Props> = ({ open, onClose }) => {
     saveClaudeKey(claudeKey.trim());
     saveGeminiKey(geminiKey.trim());
     saveOpenRouterKey(openrouterKey.trim());
+    saveGroqKey(groqKey.trim());
     setAutoModelEnabled(autoModel);
     setSelectedModel(autoModel ? null : selectedModelId);
     // Salvar chaves sempre limpa o cache de erros (ajustou saldo, nova tentativa faz sentido)
@@ -224,6 +230,35 @@ export const SettingsModal: React.FC<Props> = ({ open, onClose }) => {
                     openrouter.ai/keys
                   </a>
                   . Desbloqueia: <b>GPT-5.4</b>, <b>Grok 4</b>, <b>Llama 4 Behemoth</b>, <b>Qwen 3.5 Max</b>, <b>Mistral 3</b>, <b>DeepSeek-R1</b>, <b>Kimi K2</b>, OpenAI o3, e +400 modelos com uma unica chave. Pay-per-use.
+                </p>
+              </div>
+
+              {/* Groq API Key - ULTRA FAST, FREE TIER */}
+              <div className="p-3 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-500/10 border border-amber-500/30 rounded-lg space-y-2">
+                <label className="flex items-center gap-1.5 text-xs font-medium text-amber-300">
+                  <Key size={12} />
+                  Groq API Key (Ultra-fast, free tier)
+                  {!!groqKey && groqKey.startsWith('gsk_') && <Check size={12} className="text-emerald-400" />}
+                  <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/30 text-amber-200 rounded">FAST</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showGroqKey ? 'text' : 'password'}
+                    value={groqKey}
+                    onChange={(e) => setGroqKeyLocal(e.target.value)}
+                    placeholder="gsk_..."
+                    className="w-full pl-3 pr-10 py-2 text-xs bg-slate-900 border border-slate-700 rounded-lg text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-amber-500/50 font-mono"
+                  />
+                  <button onClick={() => setShowGroqKey(!showGroqKey)} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+                    {showGroqKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  Obter gratis em{' '}
+                  <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" className="text-amber-300 hover:underline">
+                    console.groq.com/keys
+                  </a>
+                  . Modelos: <b>Llama 3.3 70B</b> (quality top), <b>Llama 3.1 8B Instant</b> (500+ tok/s), <b>DeepSeek R1</b> (reasoning), <b>Mixtral 8x7B</b>. Latencia &lt;1s, free tier generoso. <b>Perfeito como fallback</b> quando Claude/Gemini falham.
                 </p>
               </div>
 

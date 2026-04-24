@@ -14,8 +14,9 @@
 
 import { callClaude, callClaudeWithThinking } from './claude-client';
 import { callGemini } from './gemini-client';
-import { getClaudeKey, getGeminiKey, getOpenRouterKey } from './chat-provider';
+import { getClaudeKey, getGeminiKey, getOpenRouterKey, getGroqKey } from './chat-provider';
 import { callOpenRouter } from './openrouter-client';
+import { callGroq } from './groq-client';
 import {
   DEEP_MODE_DIRECTIVE,
   DEEP_PLAN_DIRECTIVE,
@@ -54,9 +55,15 @@ async function callModelForDeep(
   const claudeKey = getClaudeKey();
   const geminiKey = getGeminiKey();
   const openrouterKey = getOpenRouterKey();
+  const groqKey = getGroqKey();
 
-  // Fase 1: prioriza velocidade (Flash)
+  // Fase 1: prioriza velocidade (modelos rapidos)
   if (phase === 1) {
+    if (groqKey) {
+      try {
+        return await callGroq(req, groqKey, 'llama-3.1-8b-instant');
+      } catch { /* fallback */ }
+    }
     if (geminiKey) {
       try {
         return await callGemini(req, geminiKey, 'gemini-3.1-flash', false);
@@ -89,6 +96,11 @@ async function callModelForDeep(
         return await callClaude(req, claudeKey, 'claude-sonnet-4-6');
       } catch { /* fallback */ }
     }
+  }
+  if (groqKey) {
+    try {
+      return await callGroq(req, groqKey, 'llama-3.3-70b-versatile');
+    } catch { /* fallback */ }
   }
   if (openrouterKey) {
     return await callOpenRouter(req, openrouterKey, 'openai/gpt-5.4');
