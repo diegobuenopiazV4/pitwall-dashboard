@@ -305,18 +305,9 @@ export const ChatArea: React.FC = () => {
 
       const systemPrompt = (clientDocsContext ? `${baseSystemPrompt}\n${clientDocsContext}` : baseSystemPrompt) + memoryBlock + correctionsBlock;
 
-      // MODO EXECUCAO: aumenta tokens maximos e injeta instrucao de resposta extensa
-      const executionDirective = `\n\n## MODO EXECUCAO ATIVADO (OBRIGATORIO)
-Voce esta no V4 PIT WALL, dashboard de execucao profissional. TODA resposta deve ser:
-1. **EXTENSA**: minimo 3000 palavras para qualquer solicitacao nao-trivial (excecao: perguntas factuais de 1 frase)
-2. **PRONTA-PARA-USO**: entregue o conteudo FINAL, nao diretrizes. Ex: se pediu "3 legendas", entregue 3 legendas completas + 6 variantes A/B + cronograma de postagem + brief de imagem + metricas esperadas + hashtags por eixo (autoridade/interacao/oferta)
-3. **ESTRUTURADA**: use H2/H3, tabelas com dados, checklists, codigo se aplicavel, callouts
-4. **COM DADOS REAIS**: benchmarks BR quando relevantes (CPL, ROAS, engagement rates do mercado)
-5. **SEM PEDIR PERMISSAO**: nao pergunte "quer que eu faca X?", ja faca X
-6. **INCLUA VARIACOES**: quando aplicavel, entregue 3-10 versoes alternativas para A/B
-7. **INCLUA TIMELINE**: prazos P1/P2/P3 com agentes responsaveis
-
-Se a solicitacao for ambigua, assuma o interpretacao mais COMPLETA possivel e entregue. NUNCA peca esclarecimento — interprete e execute.`;
+      // MODO EXECUCAO: em DEEP, instrucao extensa. Em Normal (compact), instrucao curta.
+      const executionDirective = deepMode ? `\n\n## MODO EXECUCAO DEEP (OBRIGATORIO)
+Entregue resposta EXTENSA (minimo 3000 palavras nao-trivial), PRONTA-PARA-USO, ESTRUTURADA com H2/H3/tabelas, COM DADOS BR reais, INCLUA VARIACOES A/B e TIMELINE P1/P2/P3. Interprete e execute sem pedir esclarecimento.` : `\n\nEntregue resposta COMPLETA pronta-para-uso com dados concretos, estrutura clara (H2/H3, tabelas, bullets) e proximos passos acionaveis.`;
 
       const enhancedSystemPrompt = systemPrompt + executionDirective;
 

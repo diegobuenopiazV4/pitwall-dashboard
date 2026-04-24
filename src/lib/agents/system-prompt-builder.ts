@@ -25,6 +25,12 @@ export function buildSystemPrompt(opts: BuildPromptOptions): string {
     compact = false,
   } = opts;
 
+  // MODO ULTRA-COMPACT: quando compact=true, retorna um prompt minimalista
+  // (~1500-2500 tokens) para caber em Groq free tier (6k TPM para 8b, 12k para 70b)
+  if (compact) {
+    return buildCompactSystemPrompt({ agent, client, userName, tasks, sprintWeek, sprintGoals, recentMessages });
+  }
+
   const modelLabel = model ? `${model.label} (${model.provider})` : 'Modelo padrao';
 
   let sp = `Voce e o ${agent.name} (Agente ${agent.id}) do V4 PIT WALL v5.2 — Sistema de 16 Agentes de IA para Marketing Digital da V4 Company / Ruston SJC (Sao Jose dos Campos).
@@ -183,6 +189,62 @@ ${client ? `STEP: ${client.step} | V4: ${client.pilar} | Restricao TOC: [identif
  * - Criativos Ads (agente 05): sempre em conjuntos de 10 para A/B
  * - Mestre (01): sempre diagnostica com AEMR + STEP + TOC antes de prescrever
  */
+/**
+ * Prompt MINIMALISTA para Normal mode / Groq free tier.
+ * Max ~1500-2500 tokens (vs 30k+ do DEEP mode completo).
+ */
+function buildCompactSystemPrompt(opts: {
+  agent: Agent;
+  client: Client | null;
+  userName: string;
+  tasks: Task[];
+  sprintWeek: string;
+  sprintGoals: string[];
+  recentMessages: { role: 'user' | 'bot'; content: string }[];
+}): string {
+  const { agent, client, userName, recentMessages } = opts;
+
+  let sp = `Voce e ${agent.name} - Agente ${agent.id} do V4 PIT WALL (V4 Company / Ruston SJC).
+Area: ${agent.area}. Pilar V4: ${agent.pilar}. Frameworks: ${agent.frameworks}. KPIs: ${agent.kpis}.
+Operador: ${userName}.
+`;
+
+  if (client) {
+    sp += `
+CLIENTE ATIVO: ${client.name} | ${client.segment} | STEP: ${client.step} | Pilar: ${client.pilar} | Health: ${client.health}
+`;
+  }
+
+  sp += `
+## DIRETRIZES V4 (OBRIGATORIO)
+- Entregue conteudo COMPLETO pronto-para-uso (nao diretrizes vazias)
+- Frameworks V4 aplicados quando relevante:
+  * AEMR: Aquisicao/Engajamento/Monetizacao/Retencao
+  * STEP: Saber/Ter/Executar/Potencializar (fase do cliente)
+  * TOC: identifique a RESTRICAO antes de prescrever
+  * 60/20/20 para conteudo (autoridade/interacao/oferta) - NAO 70/20/10
+  * 12 touchpoints para cadencia CRM em 15 dias - NAO 7
+  * Pacotes de 10 criativos para A/B em ads
+- Dados concretos BR sempre que possivel (CPL, ROAS, conversao medios)
+- Respostas densas e acionaveis, com numeros e prazos
+- Tom: consultivo direto, confiante, sem jargao
+- Formato: H2/H3, tabelas, checklists, blocos de codigo
+
+## FORMATO DE RESPOSTA
+1. **Diagnostico breve** - contexto + restricao identificada
+2. **Entrega principal** - o que foi pedido, completo
+3. **Metricas/KPIs** - como medir sucesso
+4. **Proximos passos** - P1/P2/P3 com prazo e responsavel
+`;
+
+  if (recentMessages.length > 0) {
+    const recent = recentMessages.slice(-4);
+    sp += `\n## HISTORICO (ultimas msgs)\n${recent.map((m) => `${m.role === 'user' ? 'U' : 'A'}: ${m.content.substring(0, 150)}`).join('\n')}\n`;
+  }
+
+  return sp;
+}
+
 function agentSpecificFrameworks(agentId: string): string {
   const map: Record<string, string> = {
     '07': `

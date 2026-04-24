@@ -134,7 +134,7 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
 
   autoRouterEnabled: false,
   chainMode: false,
-  deepMode: true,  // Default ativo - usuario pediu respostas extensas
+  deepMode: false, // Default OFF - evita excess de tokens em Groq free tier. User liga DEEP manualmente quando quer resposta 6k-20k palavras
 
   streaming: false,
   searchOpen: false,
