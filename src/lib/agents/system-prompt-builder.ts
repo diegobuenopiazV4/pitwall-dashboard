@@ -1,6 +1,7 @@
 import type { Agent, Client, Task, PromptParams } from './types';
 import { getRelevantReferences } from '../references';
 import type { ModelDefinition } from '../ai/models';
+import { getSupremoPrompt } from './supremo';
 
 interface BuildPromptOptions {
   agent: Agent;
@@ -51,8 +52,15 @@ export function buildSystemPrompt(opts: BuildPromptOptions): string {
 `;
   }
 
-  // Injeta frameworks V4 especificos por agente
-  sp += agentSpecificFrameworks(agent.id);
+  // Injeta SUPREMO prompt (8.000-12.000 palavras estruturadas) do agente
+  // Substitui o antigo agentSpecificFrameworks por versao muito mais profunda
+  const supremoPrompt = getSupremoPrompt(agent.id);
+  if (supremoPrompt) {
+    sp += supremoPrompt;
+  } else {
+    // Fallback para agentes sem SUPREMO ainda
+    sp += agentSpecificFrameworks(agent.id);
+  }
 
   sp += `
 ## METODO V4 (AEMR)
