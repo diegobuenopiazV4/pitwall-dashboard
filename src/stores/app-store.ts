@@ -5,6 +5,7 @@ import { AGENTS } from '../lib/agents/agents-data';
 import type { ConversationThread } from '../lib/conversations/threads';
 import { createThread as createThreadObj, applyMessageToThread, autoGenerateTitle } from '../lib/conversations/threads';
 
+// 'analytics' foi removido da UI mas type mantido para compat com localStorage legacy
 export type ViewMode = 'chat' | 'kanban' | 'analytics' | 'documents' | 'checkin' | 'trafego' | 'clipping' | 'criativos' | 'ekyte' | 'skills';
 
 interface AppState {

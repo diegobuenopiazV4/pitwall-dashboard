@@ -8,6 +8,8 @@ import { SmartSuggestion } from './SmartSuggestion';
 import { PautaSuggestion } from './PautaSuggestion';
 import { AgentSkillsBar } from './AgentSkillsBar';
 import { ScrollButtons } from './ScrollButtons';
+import { AgentSelector } from './AgentSelector';
+import { ClientSelector } from './ClientSelector';
 import { isComplaint, categorizeComplaint, addCorrection, getRelevantCorrections, buildCorrectionsBlock } from '../../lib/learning/feedback-system';
 import { FileUpload, type AttachedFile } from '../upload/FileUpload';
 import { buildSystemPrompt } from '../../lib/agents/system-prompt-builder';
@@ -391,23 +393,12 @@ Tente novamente apos ajustar. Peco desculpas pela interrupcao.`;
   return (
     <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-[#0a0a0f] relative">
       <ScrollButtons />
-      {/* Header */}
+      {/* Header ultra-limpo: apenas AgentSelector + ClientSelector + toggle Auto */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800 bg-[#111118]">
         <div className="flex items-center gap-2">
-          {currentAgent && (
-            <>
-              <span
-                className="w-7 h-7 flex items-center justify-center rounded-md text-sm"
-                style={{ backgroundColor: currentAgent.color + '22', color: currentAgent.color }}
-              >
-                {currentAgent.icon}
-              </span>
-              <div>
-                <span className="text-sm font-semibold text-slate-200">{currentAgent.name}</span>
-                <span className="text-[10px] text-slate-500 block">{currentAgent.area}</span>
-              </div>
-            </>
-          )}
+          <AgentSelector />
+          <span className="text-slate-700">/</span>
+          <ClientSelector />
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -417,20 +408,11 @@ Tente novamente apos ajustar. Peco desculpas pela interrupcao.`;
                 ? 'bg-purple-500/20 text-purple-400 ring-1 ring-purple-500/30'
                 : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'
             }`}
-            title="Auto-Router do Agente Mestre"
+            title="Auto-Router: Mestre escolhe o agente ideal automaticamente"
           >
             <Wand2 size={11} />
             Auto
           </button>
-          {currentClient && (
-            <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-800 rounded text-xs text-slate-400">
-              <span className={`w-2 h-2 rounded-full ${
-                currentClient.health === 'green' ? 'bg-emerald-500' :
-                currentClient.health === 'yellow' ? 'bg-amber-400' : 'bg-red-500'
-              }`} />
-              {currentClient.name}
-            </div>
-          )}
         </div>
       </div>
 

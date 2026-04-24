@@ -1,16 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  MessageSquare, Kanban, BarChart3, FolderOpen,
+  MessageSquare, Kanban, FolderOpen,
   Sparkles, Zap, Newspaper, FileText, Rocket, Grid3x3,
   ChevronDown, Wand2,
 } from 'lucide-react';
 import { useAppStore, type ViewMode } from '../../stores/app-store';
 
+// View primaria Chat + dropdown Skills + dropdown Ferramentas
 const PRIMARY_VIEWS: { id: ViewMode; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
   { id: 'chat', label: 'Chat', icon: MessageSquare },
-  { id: 'kanban', label: 'Kanban', icon: Kanban },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-  { id: 'documents', label: 'Documentos', icon: FolderOpen },
 ];
 
 interface SkillView {
@@ -30,24 +28,32 @@ const SKILL_VIEWS: SkillView[] = [
   { id: 'ekyte', label: 'Ekyte Tasks', icon: Rocket, color: '#e4243d', description: 'Bookmarklet para mkt.lab' },
 ];
 
+const TOOL_VIEWS: { id: ViewMode; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
+  { id: 'kanban', label: 'Kanban (Tarefas)', icon: Kanban },
+  { id: 'documents', label: 'Documentos', icon: FolderOpen },
+];
+
 export const ViewSwitcher: React.FC = () => {
   const { viewMode, setViewMode } = useAppStore();
   const [skillsOpen, setSkillsOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const skillsRef = useRef<HTMLDivElement>(null);
+  const toolsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (skillsRef.current && !skillsRef.current.contains(e.target as Node)) setSkillsOpen(false);
+      if (toolsRef.current && !toolsRef.current.contains(e.target as Node)) setToolsOpen(false);
     };
-    if (skillsOpen) document.addEventListener('mousedown', handler);
+    if (skillsOpen || toolsOpen) document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [skillsOpen]);
+  }, [skillsOpen, toolsOpen]);
 
   const activeSkill = SKILL_VIEWS.find((v) => v.id === viewMode);
+  const activeTool = TOOL_VIEWS.find((v) => v.id === viewMode);
 
   return (
     <div className="flex items-center gap-1 px-3 py-1.5 bg-[#0d0d14] border-b border-slate-800">
-      {/* Views primarias - chat/kanban/analytics/documentos */}
       {PRIMARY_VIEWS.map((view) => {
         const Icon = view.icon;
         const active = viewMode === view.id;
@@ -69,7 +75,7 @@ export const ViewSwitcher: React.FC = () => {
 
       <div className="w-px h-5 bg-slate-800 mx-1 shrink-0" />
 
-      {/* Dropdown unico para Skills V4 */}
+      {/* Dropdown Skills V4 */}
       <div className="relative" ref={skillsRef}>
         <button
           onClick={() => setSkillsOpen(!skillsOpen)}
@@ -121,7 +127,44 @@ export const ViewSwitcher: React.FC = () => {
         )}
       </div>
 
-      {/* Breadcrumb do contexto atual - mostra o que esta selecionado */}
+      {/* Dropdown Ferramentas (Kanban + Documentos) */}
+      <div className="relative" ref={toolsRef}>
+        <button
+          onClick={() => setToolsOpen(!toolsOpen)}
+          className={`flex items-center gap-1.5 px-3 py-1 text-[11px] rounded-md transition-all shrink-0 ${
+            activeTool
+              ? 'bg-slate-800 text-slate-200 ring-1 ring-slate-700'
+              : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
+          }`}
+        >
+          <Kanban size={12} />
+          {activeTool ? activeTool.label : 'Ferramentas'}
+          <ChevronDown size={10} className={`transition-transform ${toolsOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        {toolsOpen && (
+          <div className="absolute left-0 top-full mt-1 w-56 bg-[#1a1a24] border border-slate-700 rounded-lg shadow-2xl z-50 overflow-hidden">
+            {TOOL_VIEWS.map((view) => {
+              const Icon = view.icon;
+              const active = viewMode === view.id;
+              return (
+                <button
+                  key={view.id}
+                  onClick={() => { setViewMode(view.id); setToolsOpen(false); }}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left transition-colors ${
+                    active ? 'bg-slate-800 text-slate-100' : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <Icon size={12} />
+                  {view.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Breadcrumb contextual */}
       {activeSkill && (
         <span className="ml-2 text-[10px] text-slate-600 italic hidden lg:inline">
           \u2022 {activeSkill.description}

@@ -1,7 +1,6 @@
 import React, { lazy, Suspense } from 'react';
 import { Sidebar } from '../sidebar/Sidebar';
 import { ChatArea } from '../chat/ChatArea';
-import { ContextPanel } from '../context/ContextPanel';
 import { Header } from './Header';
 import { ViewSwitcher } from './ViewSwitcher';
 import { SearchModal } from '../modals/SearchModal';
@@ -11,11 +10,11 @@ import { OnboardingBanner } from '../auth/OnboardingBanner';
 import { ClientDocsModal } from '../modals/ClientDocsModal';
 import { GlobalSearchModal } from '../modals/GlobalSearchModal';
 import { AccountSwitcherModal } from '../modals/AccountSwitcher';
+import { ToolsModal } from '../modals/ToolsModal';
 import { useAppStore } from '../../stores/app-store';
 
 // Lazy load views pesadas (code splitting)
 const KanbanView = lazy(() => import('../views/KanbanView').then((m) => ({ default: m.KanbanView })));
-const AnalyticsView = lazy(() => import('../views/AnalyticsView').then((m) => ({ default: m.AnalyticsView })));
 const DocumentsView = lazy(() => import('../views/DocumentsView').then((m) => ({ default: m.DocumentsView })));
 const CheckinView = lazy(() => import('../views/CheckinView').then((m) => ({ default: m.CheckinView })));
 const TrafegoReportView = lazy(() => import('../views/TrafegoReportView').then((m) => ({ default: m.TrafegoReportView })));
@@ -39,67 +38,32 @@ export const AppLayout: React.FC = () => {
     searchOpen, overviewOpen, commandPaletteOpen, libraryOpen, clientDocsOpen,
     globalSearchOpen, accountsOpen,
     viewMode, setLibraryOpen, setCommandPaletteOpen,
-    setAnalyticsOpen, setSearchOpen, setOverviewOpen, setClientDocsOpen,
+    setSearchOpen, setOverviewOpen, setClientDocsOpen,
     setGlobalSearchOpen, setAccountsOpen,
     setViewMode,
   } = useAppStore();
 
+  // Suprime warnings de unused vars em producao
+  void setSearchOpen; void setOverviewOpen;
+
   const renderView = () => {
     switch (viewMode) {
       case 'kanban':
-        return (
-          <Suspense fallback={<ViewLoader />}>
-            <KanbanView />
-          </Suspense>
-        );
-      case 'analytics':
-        return (
-          <Suspense fallback={<ViewLoader />}>
-            <AnalyticsView />
-          </Suspense>
-        );
+        return (<Suspense fallback={<ViewLoader />}><KanbanView /></Suspense>);
       case 'documents':
-        return (
-          <Suspense fallback={<ViewLoader />}>
-            <DocumentsView />
-          </Suspense>
-        );
+        return (<Suspense fallback={<ViewLoader />}><DocumentsView /></Suspense>);
       case 'checkin':
-        return (
-          <Suspense fallback={<ViewLoader />}>
-            <CheckinView />
-          </Suspense>
-        );
+        return (<Suspense fallback={<ViewLoader />}><CheckinView /></Suspense>);
       case 'trafego':
-        return (
-          <Suspense fallback={<ViewLoader />}>
-            <TrafegoReportView />
-          </Suspense>
-        );
+        return (<Suspense fallback={<ViewLoader />}><TrafegoReportView /></Suspense>);
       case 'clipping':
-        return (
-          <Suspense fallback={<ViewLoader />}>
-            <ClippingRapportView />
-          </Suspense>
-        );
+        return (<Suspense fallback={<ViewLoader />}><ClippingRapportView /></Suspense>);
       case 'criativos':
-        return (
-          <Suspense fallback={<ViewLoader />}>
-            <CriativosDocxView />
-          </Suspense>
-        );
+        return (<Suspense fallback={<ViewLoader />}><CriativosDocxView /></Suspense>);
       case 'ekyte':
-        return (
-          <Suspense fallback={<ViewLoader />}>
-            <EkyteTasksView />
-          </Suspense>
-        );
+        return (<Suspense fallback={<ViewLoader />}><EkyteTasksView /></Suspense>);
       case 'skills':
-        return (
-          <Suspense fallback={<ViewLoader />}>
-            <SkillsCatalogView />
-          </Suspense>
-        );
+        return (<Suspense fallback={<ViewLoader />}><SkillsCatalogView /></Suspense>);
       default:
         return <ChatArea />;
     }
@@ -109,13 +73,13 @@ export const AppLayout: React.FC = () => {
     <div className="flex flex-col h-screen bg-[#0a0a0f] text-slate-200">
       <Header />
       <OnboardingBanner />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden min-h-0">
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
           <ViewSwitcher />
           {renderView()}
         </div>
-        {viewMode === 'chat' && <ContextPanel />}
+        {/* ContextPanel removido por default — era pesado e redundante. */}
       </div>
       {searchOpen && <SearchModal />}
       {overviewOpen && <OverviewModal />}
@@ -133,8 +97,8 @@ export const AppLayout: React.FC = () => {
           window.dispatchEvent(evt);
         }}
         onOpenAnalytics={() => {
-          setAnalyticsOpen(true);
-          setViewMode('analytics');
+          // Analytics view foi removida, redireciona para Skills Catalog
+          setViewMode('skills');
         }}
       />
       {libraryOpen && (
@@ -153,6 +117,7 @@ export const AppLayout: React.FC = () => {
       <ClientDocsModal open={clientDocsOpen} onClose={() => setClientDocsOpen(false)} />
       <GlobalSearchModal open={globalSearchOpen} onClose={() => setGlobalSearchOpen(false)} />
       <AccountSwitcherModal open={accountsOpen} onClose={() => setAccountsOpen(false)} />
+      <ToolsModal />
     </div>
   );
 };

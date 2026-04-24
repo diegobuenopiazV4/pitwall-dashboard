@@ -115,6 +115,55 @@ export function groupThreadsByClient(
 }
 
 /**
+ * Agrupa threads por tempo (estilo Claude chat): Hoje, Ontem, 7 dias, 30 dias, Mais antigas.
+ */
+export interface TimeGroup {
+  key: string;
+  label: string;
+  threads: ConversationThread[];
+}
+
+export function groupThreadsByTime(threads: ConversationThread[]): TimeGroup[] {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const yesterday = today - 86400000;
+  const sevenDays = today - 86400000 * 7;
+  const thirtyDays = today - 86400000 * 30;
+
+  const buckets: Record<string, TimeGroup> = {
+    starred: { key: 'starred', label: 'Favoritadas', threads: [] },
+    today: { key: 'today', label: 'Hoje', threads: [] },
+    yesterday: { key: 'yesterday', label: 'Ontem', threads: [] },
+    week: { key: 'week', label: '7 dias', threads: [] },
+    month: { key: 'month', label: '30 dias', threads: [] },
+    older: { key: 'older', label: 'Mais antigas', threads: [] },
+  };
+
+  for (const thread of threads) {
+    if (thread.archived) continue;
+    if (thread.starred) {
+      buckets.starred.threads.push(thread);
+      continue;
+    }
+    const updatedTs = new Date(thread.updatedAt).getTime();
+    if (updatedTs >= today) buckets.today.threads.push(thread);
+    else if (updatedTs >= yesterday) buckets.yesterday.threads.push(thread);
+    else if (updatedTs >= sevenDays) buckets.week.threads.push(thread);
+    else if (updatedTs >= thirtyDays) buckets.month.threads.push(thread);
+    else buckets.older.threads.push(thread);
+  }
+
+  // Sort dentro de cada bucket por updatedAt DESC
+  for (const bucket of Object.values(buckets)) {
+    bucket.threads.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }
+
+  // Retorna apenas grupos nao-vazios, na ordem correta
+  return [buckets.starred, buckets.today, buckets.yesterday, buckets.week, buckets.month, buckets.older]
+    .filter((g) => g.threads.length > 0);
+}
+
+/**
  * Filtra threads por termo de busca (titulo + tags + preview).
  */
 export function searchThreads(threads: ConversationThread[], query: string): ConversationThread[] {
