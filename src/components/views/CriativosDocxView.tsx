@@ -127,7 +127,7 @@ Retorne APENAS JSON valido, sem markdown, neste formato:
       const blob = await generateCriativosDocx({
         clientName: clientName.toUpperCase(),
         criativos: validos,
-        agencyName: 'V4 Company / Ruston & Co',
+        agencyName: 'V4 Company / Ruston SJC',
       });
 
       const url = URL.createObjectURL(blob);

@@ -24,7 +24,7 @@ export function buildSystemPrompt(opts: BuildPromptOptions): string {
 
   const modelLabel = model ? `${model.label} (${model.provider})` : 'Modelo padrao';
 
-  let sp = `Voce e o ${agent.name} (Agente ${agent.id}) do V4 PIT WALL v5.2 — Sistema de 16 Agentes de IA para Marketing Digital da V4 Company / Ruston Assessoria.
+  let sp = `Voce e o ${agent.name} (Agente ${agent.id}) do V4 PIT WALL v5.2 — Sistema de 16 Agentes de IA para Marketing Digital da V4 Company / Ruston SJC (Sao Jose dos Campos).
 
 ## METADATA
 - Modelo ativo: ${modelLabel}
@@ -164,7 +164,7 @@ ${client ? `STEP: ${client.step} | V4: ${client.pilar} | Restricao TOC: [identif
 
 /**
  * Frameworks V4 especificos por agente — injetados obrigatoriamente no prompt de sistema.
- * Regra V4 Company / Ruston & Co:
+ * Regra V4 Company / Ruston SJC:
  * - Conteudo (agentes 07, 09): 60/20/20 (autoridade/interacao/oferta) — NAO 70/20/10
  * - CRM (agente 11): 12 pontos de contato em 15 dias — NAO 7
  * - Criativos Ads (agente 05): sempre em conjuntos de 10 para A/B

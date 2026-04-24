@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Agent, Client, Message, Task, PromptParams } from '../lib/agents/types';
 import { AGENTS } from '../lib/agents/agents-data';
+import type { ConversationThread } from '../lib/conversations/threads';
+import { createThread as createThreadObj, applyMessageToThread, autoGenerateTitle } from '../lib/conversations/threads';
 
 export type ViewMode = 'chat' | 'kanban' | 'analytics' | 'documents' | 'checkin' | 'trafego' | 'clipping' | 'criativos' | 'ekyte' | 'skills';
 
@@ -15,7 +17,7 @@ interface AppState {
   // Selection
   currentAgent: Agent | null;
   currentClient: Client | null;
-  sidebarTab: 'agents' | 'clients' | 'tasks' | 'sprint';
+  sidebarTab: 'conversas' | 'agents' | 'clients' | 'tasks' | 'sprint';
   viewMode: ViewMode;
 
   // Data
@@ -24,6 +26,10 @@ interface AppState {
   messages: Record<string, Message[]>;
   tasks: Task[];
   bookmarks: Set<string>;
+
+  // Conversation Threads (multiplas conversas por cliente)
+  threads: ConversationThread[];
+  currentThreadId: string | null;
 
   // Sprint
   sprintWeek: string;
@@ -87,6 +93,15 @@ interface AppState {
   setAccountsOpen: (open: boolean) => void;
   getConvKey: () => string;
   getAllMessages: () => Message[];
+
+  // Thread actions
+  createNewThread: (firstMessage?: string) => ConversationThread;
+  selectThread: (threadId: string | null) => void;
+  renameThread: (threadId: string, newTitle: string) => void;
+  deleteThread: (threadId: string) => void;
+  toggleThreadStar: (threadId: string) => void;
+  toggleThreadArchive: (threadId: string) => void;
+  updateThreadAfterMessage: (threadId: string, msg: { content: string; role: 'user' | 'bot' }) => void;
 }
 
 export const useAppStore = create<AppState>()(persist((set, get) => ({
@@ -105,6 +120,9 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
   messages: {},
   tasks: [],
   bookmarks: new Set(),
+
+  threads: [],
+  currentThreadId: null,
 
   sprintWeek: '',
   sprintGoals: [],
@@ -200,13 +218,90 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
   setAccountsOpen: (accountsOpen) => set({ accountsOpen }),
 
   getConvKey: () => {
-    const { currentAgent, currentClient } = get();
+    const { currentAgent, currentClient, currentThreadId } = get();
+    // Se ha thread ativa, usa o threadId como chave da conversa
+    if (currentThreadId) return `thread_${currentThreadId}`;
+    // Caso contrario, legacy: agent+client
     return `${currentAgent?.id ?? '01'}_${currentClient?.id ?? 'general'}`;
   },
 
   getAllMessages: () => {
     const { messages } = get();
     return Object.values(messages).flat();
+  },
+
+  // THREAD ACTIONS
+  createNewThread: (firstMessage) => {
+    const { userId, currentClient, currentAgent } = get();
+    const thread = createThreadObj({
+      userId: userId || 'offline',
+      clientId: currentClient?.id ?? null,
+      agentId: currentAgent?.id ?? '01',
+      firstMessage,
+    });
+    set((s) => ({
+      threads: [thread, ...s.threads],
+      currentThreadId: thread.id,
+    }));
+    return thread;
+  },
+
+  selectThread: (threadId) => {
+    if (!threadId) {
+      set({ currentThreadId: null });
+      return;
+    }
+    const { threads, selectAgent, selectClient, clients } = get();
+    const thread = threads.find((t) => t.id === threadId);
+    if (!thread) return;
+    // Ao selecionar thread, tambem muda o agente e cliente atuais para contexto correto
+    selectAgent(thread.primaryAgentId);
+    if (thread.clientId) {
+      const client = clients.find((c) => c.id === thread.clientId);
+      if (client) selectClient(client);
+    } else {
+      selectClient(null);
+    }
+    set({ currentThreadId: threadId });
+  },
+
+  renameThread: (threadId, newTitle) => {
+    set((s) => ({
+      threads: s.threads.map((t) =>
+        t.id === threadId ? { ...t, title: newTitle || autoGenerateTitle(t.title), updatedAt: new Date().toISOString() } : t
+      ),
+    }));
+  },
+
+  deleteThread: (threadId) => {
+    set((s) => {
+      const messagesCopy = { ...s.messages };
+      delete messagesCopy[`thread_${threadId}`];
+      return {
+        threads: s.threads.filter((t) => t.id !== threadId),
+        messages: messagesCopy,
+        currentThreadId: s.currentThreadId === threadId ? null : s.currentThreadId,
+      };
+    });
+  },
+
+  toggleThreadStar: (threadId) => {
+    set((s) => ({
+      threads: s.threads.map((t) => t.id === threadId ? { ...t, starred: !t.starred } : t),
+    }));
+  },
+
+  toggleThreadArchive: (threadId) => {
+    set((s) => ({
+      threads: s.threads.map((t) => t.id === threadId ? { ...t, archived: !t.archived } : t),
+      currentThreadId: s.currentThreadId === threadId ? null : s.currentThreadId,
+    }));
+  },
+
+  updateThreadAfterMessage: (threadId, msg) => {
+    set((s) => ({
+      threads: s.threads.map((t) => t.id === threadId ? applyMessageToThread(t, msg) : t),
+    }));
   },
 }), {
   name: 'v4-pitwall-store',
@@ -222,6 +317,8 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
     autoRouterEnabled: state.autoRouterEnabled,
     chainMode: state.chainMode,
     bookmarks: Array.from(state.bookmarks), // Set nao serializa
+    threads: state.threads,
+    currentThreadId: state.currentThreadId,
     currentAgent: state.currentAgent,
     currentClient: state.currentClient,
     sidebarTab: state.sidebarTab,

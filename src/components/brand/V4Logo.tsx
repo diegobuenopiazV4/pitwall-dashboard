@@ -54,7 +54,7 @@ export const V4Logo: React.FC<Props> = ({
             className="text-slate-500 tracking-widest uppercase font-medium"
             style={{ fontSize: sfs, marginTop: size === 'sm' ? -2 : 0 }}
           >
-            Ruston & Co{showDots ? ' · 16 AI Agents' : ''}
+            Ruston SJC{showDots ? ' · 16 AI Agents' : ''}
           </span>
         )}
       </div>

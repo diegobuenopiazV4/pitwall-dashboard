@@ -36,7 +36,7 @@ export const ClippingRapportView: React.FC = () => {
     setStage('researching');
 
     const systemPrompt = `Voce e analista de inteligencia de mercado senior.
-Sua missao: gerar um clipping de rapport para o time comercial da V4 Company / Ruston & Co enviar a um cliente.
+Sua missao: gerar um clipping de rapport para o time comercial da V4 Company / Ruston SJC enviar a um cliente.
 O objetivo e fortalecer o relacionamento mostrando curadoria de qualidade.
 
 Para este clipping:

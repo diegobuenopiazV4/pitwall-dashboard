@@ -83,7 +83,7 @@ export const TrafegoReportView: React.FC = () => {
   const [clientName, setClientName] = useState(currentClient?.name || '');
   const [segment, setSegment] = useState(currentClient?.segment || '');
   const [period, setPeriod] = useState(new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }));
-  const [agencyName, setAgencyName] = useState('V4 Company / Ruston & Co');
+  const [agencyName, setAgencyName] = useState('V4 Company / Ruston SJC');
   const [generating, setGenerating] = useState(false);
   const [resultHtml, setResultHtml] = useState<string>('');
   const [error, setError] = useState('');
@@ -134,7 +134,7 @@ export const TrafegoReportView: React.FC = () => {
     const totalResults = (metaData?.totalResults || 0) + (googleData?.totalResults || 0);
     const avgCpl = totalResults > 0 ? totalInvest / totalResults : 0;
 
-    const systemPrompt = `Voce e analista senior de midia paga da V4 Company / Ruston & Co.
+    const systemPrompt = `Voce e analista senior de midia paga da V4 Company / Ruston SJC.
 Sua missao: gerar insights estrategicos, analise de orcamento e proximos passos para um relatorio mensal.
 Estilo: direto, dados-concreto, tom confiante, sempre com numeros especificos.
 Framework: AEMR (Aquisicao/Engajamento/Monetizacao/Retencao) + STEP V4.`;

@@ -8,6 +8,7 @@ import { SmartSuggestion } from './SmartSuggestion';
 import { PautaSuggestion } from './PautaSuggestion';
 import { AgentSkillsBar } from './AgentSkillsBar';
 import { ScrollButtons } from './ScrollButtons';
+import { isComplaint, categorizeComplaint, addCorrection, getRelevantCorrections, buildCorrectionsBlock } from '../../lib/learning/feedback-system';
 import { FileUpload, type AttachedFile } from '../upload/FileUpload';
 import { buildSystemPrompt } from '../../lib/agents/system-prompt-builder';
 import { autoSelectAgent } from '../../lib/agents/auto-router';
@@ -25,6 +26,7 @@ export const ChatArea: React.FC = () => {
     streaming, autoRouterEnabled, setAutoRouter,
     setStreaming, addMessage, getConvKey, selectAgent,
     setLibraryOpen,
+    currentThreadId, createNewThread, updateThreadAfterMessage, renameThread,
   } = useAppStore();
 
   const [input, setInput] = useState('');
@@ -119,7 +121,14 @@ export const ChatArea: React.FC = () => {
       userText = `${userText}\n\n---\n${fileContext}`;
     }
 
-    const newConvKey = `${finalAgent.id}_${currentClient?.id ?? 'general'}`;
+    // Auto-cria thread se nao ha uma ativa (primeira mensagem)
+    let activeThreadId = currentThreadId;
+    if (!activeThreadId) {
+      const newThread = createNewThread(userText);
+      activeThreadId = newThread.id;
+    }
+
+    const newConvKey = `thread_${activeThreadId}`;
     const newMessages = messages[newConvKey] ?? [];
 
     const userMsg: Message = {
@@ -130,6 +139,27 @@ export const ChatArea: React.FC = () => {
       createdAt: new Date().toISOString(),
     };
     addMessage(newConvKey, userMsg);
+    updateThreadAfterMessage(activeThreadId, { content: userText, role: 'user' });
+
+    // DETECCAO DE FEEDBACK: se a mensagem parece reclamacao, salva correcao
+    if (newMessages.length > 0 && isComplaint(userText)) {
+      const lastBotMsg = [...newMessages].reverse().find((m) => m.role === 'bot');
+      const prevUserMsg = [...newMessages].reverse().find((m) => m.role === 'user');
+      if (lastBotMsg && prevUserMsg) {
+        const category = categorizeComplaint(userText);
+        addCorrection({
+          agentId: finalAgent.id,
+          clientId: currentClient?.id,
+          category,
+          originalPrompt: prevUserMsg.content.substring(0, 500),
+          originalResponse: lastBotMsg.content.substring(0, 500),
+          userComplaint: userText.substring(0, 500),
+          correctionInstruction: `Usuario reclamou da resposta anterior. Reclamacao: "${userText.substring(0, 300)}". Ajustar futuras respostas de acordo.`,
+          userId: userId || 'offline',
+        });
+        toast.success('Aprendi com seu feedback. Vou aplicar em futuras respostas.', { icon: '🧠', duration: 4000 });
+      }
+    }
     setInput('');
     setAttachedFiles([]);
     setShowUpload(false);
@@ -171,7 +201,15 @@ export const ChatArea: React.FC = () => {
         includeReferences: true,
       });
 
-      const systemPrompt = clientDocsContext ? `${baseSystemPrompt}\n${clientDocsContext}` : baseSystemPrompt;
+      // Correcoes aprendidas com feedback anterior (globais por agente/cliente)
+      const relevantCorrections = getRelevantCorrections({
+        agentId: finalAgent.id,
+        clientId: currentClient?.id,
+        limit: 10,
+      });
+      const correctionsBlock = buildCorrectionsBlock(relevantCorrections);
+
+      const systemPrompt = (clientDocsContext ? `${baseSystemPrompt}\n${clientDocsContext}` : baseSystemPrompt) + correctionsBlock;
 
       // MODO EXECUCAO: aumenta tokens maximos e injeta instrucao de resposta extensa
       const executionDirective = `\n\n## MODO EXECUCAO ATIVADO (OBRIGATORIO)
@@ -277,6 +315,15 @@ Suas chaves estao configuradas, mas nenhum modelo pode ser resolvido no momento.
         images,
       };
       addMessage(newConvKey, botMsg);
+      if (activeThreadId) {
+        updateThreadAfterMessage(activeThreadId, { content: responseText, role: 'bot' });
+        // Se e a 1a mensagem da thread, auto-renomeia com base na pergunta mais descritiva
+        const isFirstExchange = newMessages.length === 0;
+        if (isFirstExchange && userText.length > 10) {
+          // Mantem titulo ja gerado (autoGenerateTitle foi chamado ao criar thread)
+          // Aqui podemos melhorar: usar IA para resumir, mas por ora o titulo inicial ja basta
+        }
+      }
 
       persistMessages(userMsg, botMsg, finalAgent.id);
     } catch (err) {

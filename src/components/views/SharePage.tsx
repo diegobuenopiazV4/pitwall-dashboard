@@ -124,7 +124,7 @@ export const SharePage: React.FC<{ slug: string }> = ({ slug }) => {
         <a href="/" className="text-red-500 hover:underline">
           V4 PIT WALL
         </a>
-        {' '}· V4 Company / Ruston Assessoria
+        {' '}· V4 Company / Ruston SJC
       </footer>
     </div>
   );

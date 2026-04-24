@@ -7,12 +7,16 @@
 import type { ChatRequest } from './types';
 
 export type GeminiApiModel =
+  | 'gemini-3.1-pro'
+  | 'gemini-3.1-flash'
+  | 'gemini-3.1-flash-image'
+  | 'gemini-3.0-pro-image'
   | 'gemini-2.5-pro'
   | 'gemini-2.5-flash'
   | 'gemini-2.5-flash-image'
   | 'gemini-2.0-flash';
 
-const DEFAULT_MODEL: GeminiApiModel = 'gemini-2.5-flash';
+const DEFAULT_MODEL: GeminiApiModel = 'gemini-3.1-pro';
 
 async function doGeminiCall(
   req: ChatRequest,
@@ -71,6 +75,17 @@ async function doGeminiCall(
   throw new Error('Resposta vazia da Gemini API');
 }
 
+/**
+ * Fallback automatico de modelo quando API retorna 404 (modelo nao disponivel nesta regiao/projeto).
+ * Gemini 3.1 ainda nao esta disponivel em todos os projetos Google Cloud.
+ */
+const MODEL_FALLBACKS: Record<string, string> = {
+  'gemini-3.1-pro': 'gemini-2.5-pro',
+  'gemini-3.1-flash': 'gemini-2.5-flash',
+  'gemini-3.1-flash-image': 'gemini-2.5-flash-image',
+  'gemini-3.0-pro-image': 'gemini-2.5-flash-image',
+};
+
 export async function callGemini(
   req: ChatRequest,
   apiKey: string,
@@ -81,8 +96,25 @@ export async function callGemini(
     return await doGeminiCall(req, apiKey, model, useGoogleSearch);
   } catch (err: any) {
     const msg = err?.message || '';
-    // Se o erro foi resposta vazia ou finishReason inesperado E usamos googleSearch,
-    // tenta de novo SEM googleSearch (as vezes grounding bloqueia prompts simples)
+
+    // 1. Se modelo 3.x nao existe (404), fallback para 2.5
+    if (msg.includes('404') || msg.includes('not found') || msg.includes('is not supported')) {
+      const fallback = MODEL_FALLBACKS[model];
+      if (fallback && fallback !== model) {
+        console.warn(`[Gemini] ${model} indisponivel, fallback para ${fallback}`);
+        try {
+          return await doGeminiCall(req, apiKey, fallback as GeminiApiModel, useGoogleSearch);
+        } catch (err2: any) {
+          const msg2 = err2?.message || '';
+          if (useGoogleSearch && (msg2.includes('vazia') || msg2.includes('finalizado'))) {
+            return await doGeminiCall(req, apiKey, fallback as GeminiApiModel, false);
+          }
+          throw err2;
+        }
+      }
+    }
+
+    // 2. Se resposta vazia/finish reason inesperado E googleSearch estava ativo, retenta sem tools
     if (useGoogleSearch && (msg.includes('vazia') || msg.includes('finalizado'))) {
       return await doGeminiCall(req, apiKey, model, false);
     }

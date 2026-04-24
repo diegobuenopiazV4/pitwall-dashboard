@@ -234,7 +234,7 @@ export const LoginForm: React.FC = () => {
         {/* Footer */}
         <div className="mt-6 text-center">
           <p className="text-[10px] text-slate-600">
-            V4 Company · Ruston Assessoria · v5.2
+            V4 Company · Ruston SJC · v5.4
           </p>
         </div>
       </div>
