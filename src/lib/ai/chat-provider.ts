@@ -182,7 +182,7 @@ export function resolveModel(userPrompt: string, agentId: string): ModelDefiniti
   if (openrouterUsable) return MODELS['gpt-5-4-mini'];
   // Se todos bloqueados mas com chaves, tenta mesmo assim (pode ter liberado)
   if (status.hasClaudeKey) return MODELS['claude-sonnet-4-6'];
-  if (status.hasGeminiKey) return MODELS['gemini-3-1-flash'];
+  if (status.hasGeminiKey) return MODELS['gemini-3-1-pro'];
   if (status.hasOpenRouterKey) return MODELS['gpt-5-4-mini'];
   return null;
 }
@@ -274,7 +274,7 @@ function findFallbackModel(excludeProvider: APIProvider): ModelDefinition | null
   const status = getStatus();
   const preferences: Record<APIProvider, string> = {
     claude: 'claude-sonnet-4-6',
-    gemini: 'gemini-3-1-flash',
+    gemini: 'gemini-3-1-pro', // Pro com reasoning - prefere qualidade em vez de velocidade
     openrouter: 'gpt-5-4-mini',
   };
 

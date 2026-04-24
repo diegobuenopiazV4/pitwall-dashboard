@@ -7,9 +7,9 @@ import { QuickActions } from './QuickActions';
 import { SmartSuggestion } from './SmartSuggestion';
 import { PautaSuggestion } from './PautaSuggestion';
 import { AgentSkillsBar } from './AgentSkillsBar';
+import { ScrollButtons } from './ScrollButtons';
 import { FileUpload, type AttachedFile } from '../upload/FileUpload';
 import { buildSystemPrompt } from '../../lib/agents/system-prompt-builder';
-import { generateOfflineResponse } from '../../lib/agents/offline-responses';
 import { autoSelectAgent } from '../../lib/agents/auto-router';
 import { supabase } from '../../lib/supabase/client';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
@@ -173,11 +173,26 @@ export const ChatArea: React.FC = () => {
 
       const systemPrompt = clientDocsContext ? `${baseSystemPrompt}\n${clientDocsContext}` : baseSystemPrompt;
 
+      // MODO EXECUCAO: aumenta tokens maximos e injeta instrucao de resposta extensa
+      const executionDirective = `\n\n## MODO EXECUCAO ATIVADO (OBRIGATORIO)
+Voce esta no V4 PIT WALL, dashboard de execucao profissional. TODA resposta deve ser:
+1. **EXTENSA**: minimo 3000 palavras para qualquer solicitacao nao-trivial (excecao: perguntas factuais de 1 frase)
+2. **PRONTA-PARA-USO**: entregue o conteudo FINAL, nao diretrizes. Ex: se pediu "3 legendas", entregue 3 legendas completas + 6 variantes A/B + cronograma de postagem + brief de imagem + metricas esperadas + hashtags por eixo (autoridade/interacao/oferta)
+3. **ESTRUTURADA**: use H2/H3, tabelas com dados, checklists, codigo se aplicavel, callouts
+4. **COM DADOS REAIS**: benchmarks BR quando relevantes (CPL, ROAS, engagement rates do mercado)
+5. **SEM PEDIR PERMISSAO**: nao pergunte "quer que eu faca X?", ja faca X
+6. **INCLUA VARIACOES**: quando aplicavel, entregue 3-10 versoes alternativas para A/B
+7. **INCLUA TIMELINE**: prazos P1/P2/P3 com agentes responsaveis
+
+Se a solicitacao for ambigua, assuma o interpretacao mais COMPLETA possivel e entregue. NUNCA peca esclarecimento — interprete e execute.`;
+
+      const enhancedSystemPrompt = systemPrompt + executionDirective;
+
       const aiResult = await sendChat({
-        systemPrompt,
+        systemPrompt: enhancedSystemPrompt,
         userPrompt: userText,
-        maxTokens: modelToUse?.maxOutput ?? 8192,
-        temperature: 0.8,
+        maxTokens: Math.max(modelToUse?.maxOutput ?? 16384, 16384),
+        temperature: 0.85,
         agentId: finalAgent.id,
         overrideModelId: pendingModelId,
       });
@@ -217,8 +232,36 @@ export const ChatArea: React.FC = () => {
           // silent
         }
       } else {
-        responseText = generateOfflineResponse(userText, finalAgent, currentClient);
-        toast('Modo offline. Configure Claude ou Gemini em Settings.', { icon: 'ℹ️', duration: 3000 });
+        // Nenhuma chave configurada - mostra erro claro em vez de resposta offline generica
+        const providerStatus = getProviderStatus();
+        const hasAnyKey = providerStatus.hasClaudeKey || providerStatus.hasGeminiKey || providerStatus.hasOpenRouterKey;
+
+        if (!hasAnyKey) {
+          responseText = `## \u26a0\ufe0f Nenhuma chave de IA configurada
+
+Para o V4 PIT WALL funcionar, configure ao menos uma chave:
+
+- **Claude API** (Anthropic) - melhor qualidade de escrita - https://console.anthropic.com
+- **Gemini API** (Google) - gratuita - https://aistudio.google.com/app/apikey
+- **OpenRouter** - acesso a 400+ modelos - https://openrouter.ai/keys
+
+Va em **Settings (engrenagem no header)** e cole sua chave.
+
+Enquanto nao configura, eu nao consigo gerar conteudo com IA real. Prefiro te avisar isso a entregar uma resposta offline mediocre.`;
+          toast.error('Configure uma chave em Settings');
+        } else {
+          // Tem chave mas sendChat retornou null - erro de resolucao
+          responseText = `## \u26a0\ufe0f Erro de resolucao de modelo
+
+Suas chaves estao configuradas, mas nenhum modelo pode ser resolvido no momento. Possiveis causas:
+1. Modelo selecionado em Settings nao existe mais
+2. Provider do modelo selecionado esta temporariamente bloqueado por erro recente
+
+**Acoes:**
+- Va em Settings \u2192 Modelos e clique em "Auto-Select"
+- Ou aguarde 5 minutos e tente novamente (cache de erros expira)`;
+          toast.error('Erro de resolucao - ver Settings');
+        }
       }
 
       const botMsg: Message = {
@@ -237,17 +280,35 @@ export const ChatArea: React.FC = () => {
 
       persistMessages(userMsg, botMsg, finalAgent.id);
     } catch (err) {
-      const fallback = generateOfflineResponse(userText, finalAgent, currentClient);
+      // NUNCA usa offline quando ha chaves configuradas. Mostra erro real da API.
+      const errMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      const content = `## \u274c Falha na comunicacao com a IA
+
+**Erro tecnico:** ${errMessage}
+
+### O que aconteceu
+As tentativas de comunicacao com os providers de IA (Claude, Gemini, OpenRouter na ordem) falharam. O V4 PIT WALL **nao entrega respostas offline** porque voce precisa de output de IA real.
+
+### Como resolver
+1. **Verifique seu saldo** na Anthropic Console ou Google AI Studio
+2. **Teste sua conexao de rede** (a API pode estar inacessivel)
+3. **Clique em Settings e \u201cLimpar cache de erros\u201d** (se o erro foi ha >5 min)
+4. **Tente outro modelo** em Settings \u2192 Modelos
+
+### Prompt original
+> ${userText.substring(0, 500)}${userText.length > 500 ? '...' : ''}
+
+Tente novamente apos ajustar. Peco desculpas pela interrupcao.`;
       const errorMsg: Message = {
         id: crypto.randomUUID(),
         conversationId: newConvKey,
         role: 'bot',
-        content: `> **Aviso:** ${err instanceof Error ? err.message : 'Erro ao processar'}\n> Usando resposta offline.\n\n${fallback}`,
+        content,
         agentId: finalAgent.id,
         createdAt: new Date().toISOString(),
       };
       addMessage(newConvKey, errorMsg);
-      toast.error('Erro na API. Resposta offline gerada.');
+      toast.error(`API falhou: ${errMessage.slice(0, 80)}`);
     } finally {
       setStreaming(false);
     }
@@ -281,7 +342,8 @@ export const ChatArea: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 bg-[#0a0a0f]">
+    <div className="flex-1 flex flex-col min-w-0 bg-[#0a0a0f] relative">
+      <ScrollButtons />
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800 bg-[#111118]">
         <div className="flex items-center gap-2">

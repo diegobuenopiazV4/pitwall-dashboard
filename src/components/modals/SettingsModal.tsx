@@ -13,6 +13,8 @@ import {
   getClaudeKey,
   getGeminiKey,
   getOpenRouterKey,
+  clearProviderErrors,
+  getProviderErrors,
 } from '../../lib/ai/chat-provider';
 import { MODELS, MODEL_CATEGORIES, type ModelDefinition } from '../../lib/ai/models';
 
@@ -50,8 +52,17 @@ export const SettingsModal: React.FC<Props> = ({ open, onClose }) => {
     saveOpenRouterKey(openrouterKey.trim());
     setAutoModelEnabled(autoModel);
     setSelectedModel(autoModel ? null : selectedModelId);
-    toast.success('Configuracoes salvas');
+    // Salvar chaves sempre limpa o cache de erros (ajustou saldo, nova tentativa faz sentido)
+    clearProviderErrors();
+    toast.success('Configuracoes salvas + cache de erros limpo');
     onClose();
+  };
+
+  const handleClearErrorCache = () => {
+    clearProviderErrors();
+    const errors = getProviderErrors();
+    const remaining = Object.keys(errors).length;
+    toast.success(`Cache de erros limpo. Providers bloqueados: ${remaining}`);
   };
 
   const handleClearAll = () => {
@@ -350,6 +361,20 @@ export const SettingsModal: React.FC<Props> = ({ open, onClose }) => {
                 >
                   <Download size={11} />
                   Exportar Clientes (CSV)
+                </button>
+              </div>
+
+              <div className="pt-3 border-t border-slate-800">
+                <h3 className="text-[11px] font-semibold text-amber-400 mb-2">Cache de Erros de Provider</h3>
+                <p className="text-[10px] text-slate-500 mb-2 leading-relaxed">
+                  Quando Claude/Gemini/OpenRouter falham com erro de billing ou auth, ficam bloqueados por 5 minutos para nao perder tempo. Limpe o cache se voce adicionou creditos ou trocou a chave.
+                </p>
+                <button
+                  onClick={handleClearErrorCache}
+                  className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 rounded-md transition-colors"
+                >
+                  <Zap size={11} />
+                  Limpar cache de erros (destrava providers)
                 </button>
               </div>
 
