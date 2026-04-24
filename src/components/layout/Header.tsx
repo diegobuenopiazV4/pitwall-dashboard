@@ -50,11 +50,11 @@ export const Header: React.FC = () => {
           <button
             onClick={() => setCommandPaletteOpen(true)}
             className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] text-slate-400 bg-slate-800/50 rounded-md hover:bg-slate-700 transition-colors"
-            title="Command Palette (Ctrl+Shift+P)"
+            title="Comandos (Ctrl+Shift+P)"
           >
             <Command size={12} />
-            <span className="hidden sm:inline">Palette</span>
-            <kbd className="hidden md:inline text-[9px] px-1 py-0.5 bg-slate-700 rounded">⌘⇧P</kbd>
+            <span className="hidden sm:inline">Comandos</span>
+            <kbd className="hidden md:inline text-[9px] px-1 py-0.5 bg-slate-700 rounded">Ctrl+Shift+P</kbd>
           </button>
 
           <button

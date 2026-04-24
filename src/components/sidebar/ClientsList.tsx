@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, FolderOpen, FolderTree, Search } from 'lucide-react';
+import { Plus, Trash2, FolderOpen, FolderTree, Search, Edit2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppStore } from '../../stores/app-store';
 import { NewClientModal } from '../modals/NewClientModal';
 import { FolderImportModal } from '../modals/FolderImportModal';
+import { ClientEditorModal } from '../modals/ClientEditorModal';
 import { deleteClientRemote } from '../../hooks/useSupabaseSync';
 
 const HEALTH_COLORS = {
@@ -25,6 +26,7 @@ export const ClientsList: React.FC = () => {
   const [folderImportOpen, setFolderImportOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [editingClientId, setEditingClientId] = useState<string | null>(null);
 
   const filtered = query
     ? clients.filter((c) =>
@@ -135,6 +137,13 @@ export const ClientsList: React.FC = () => {
                     <FolderOpen size={12} />
                   </button>
                   <button
+                    onClick={() => setEditingClientId(client.id)}
+                    className="p-1 text-slate-600 opacity-0 group-hover:opacity-100 hover:text-emerald-400 transition-all shrink-0"
+                    title="Editar cliente completo"
+                  >
+                    <Edit2 size={12} />
+                  </button>
+                  <button
                     onClick={() => setConfirmDelete(client.id)}
                     className="p-1 text-slate-600 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all shrink-0"
                     title="Remover"
@@ -180,6 +189,7 @@ export const ClientsList: React.FC = () => {
       </div>
       <NewClientModal open={modalOpen} onClose={() => setModalOpen(false)} />
       <FolderImportModal open={folderImportOpen} onClose={() => setFolderImportOpen(false)} />
+      <ClientEditorModal open={!!editingClientId} clientId={editingClientId} onClose={() => setEditingClientId(null)} />
     </>
   );
 };

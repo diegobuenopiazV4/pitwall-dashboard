@@ -76,8 +76,8 @@ function isProviderBlocked(provider: string): boolean {
     delete providerErrorCache[provider];
     return false;
   }
-  // Bloqueia apenas para billing e auth (erros que nao mudam sozinhos)
-  return cached.reason === 'billing' || cached.reason === 'auth';
+  // Bloqueia para billing, auth E rate-limit (quota) - todos erros que demoram pra resolver
+  return cached.reason === 'billing' || cached.reason === 'auth' || cached.reason === 'rate-limit';
 }
 
 export function clearProviderErrors(): void {

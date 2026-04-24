@@ -7,21 +7,23 @@ import toast from 'react-hot-toast';
 import { useAppStore } from '../../stores/app-store';
 import { groupThreadsByTime, searchThreads } from '../../lib/conversations/threads';
 import { AGENTS } from '../../lib/agents/agents-data';
-import { V4Logo } from '../brand/V4Logo';
 import { supabase } from '../../lib/supabase/client';
+import { NewConversationModal } from '../modals/NewConversationModal';
 
 export const ConversationsList: React.FC = () => {
   const {
     threads, currentThreadId, clients, userName,
-    createNewThread, selectThread, renameThread, deleteThread,
+    selectThread, renameThread, deleteThread,
     toggleThreadStar, toggleThreadArchive, logout,
   } = useAppStore();
+  // createNewThread nao e mais chamado aqui - vai via NewConversationModal
 
   const [query, setQuery] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [showTools, setShowTools] = useState(false);
+  const [newConvOpen, setNewConvOpen] = useState(false);
 
   // Filtra
   const filtered = useMemo(() => searchThreads(threads, query), [threads, query]);
@@ -39,9 +41,7 @@ export const ConversationsList: React.FC = () => {
   }, [clients]);
 
   const handleNewThread = () => {
-    createNewThread();
-    setQuery('');
-    toast.success('Nova conversa', { duration: 1500 });
+    setNewConvOpen(true);
   };
 
   const handleRename = (id: string, currentTitle: string) => {
@@ -72,11 +72,8 @@ export const ConversationsList: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Logo + New chat */}
+      {/* New chat (sem logo duplicada - ja existe no header) */}
       <div className="p-3 border-b border-slate-800/50">
-        <div className="mb-3">
-          <V4Logo size="sm" showSubtitle={true} showDots={false} />
-        </div>
         <button
           onClick={handleNewThread}
           className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-[#e4243d] to-[#ff4d5a] hover:opacity-90 text-white text-sm font-semibold rounded-lg shadow-lg transition-all"
@@ -267,6 +264,8 @@ export const ConversationsList: React.FC = () => {
           <Users size={11} className="text-slate-500" />
         </button>
       </div>
+
+      <NewConversationModal open={newConvOpen} onClose={() => setNewConvOpen(false)} />
     </div>
   );
 };
