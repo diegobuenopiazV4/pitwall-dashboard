@@ -1,4 +1,5 @@
 import type { Agent, Client } from './types';
+import { getClaudeKey, getGeminiKey, getOpenRouterKey } from '../ai/chat-provider';
 
 type ResponseFn = (client: Client | null) => string;
 type AgentResponses = Record<string, ResponseFn>;
@@ -38,124 +39,78 @@ const RESPONSES: Record<string, AgentResponses> = {
 | Pilar | Acao | Agente | Prazo |
 |-------|------|--------|-------|
 | Aquisicao | ${acquisition} | 03, 04 | 7 dias |
-| Engajamento | Calendario editorial + nutricao | 07, 09 | 14 dias |
+| Engajamento | Calendario editorial 60/20/20 + nutricao | 07, 09 | 14 dias |
 | Monetizacao | ${monetization} | 08, 11 | 7 dias |
-| Retencao | Fluxo automacao pos-venda | 10 | 21 dias |`;
+| Retencao | Fluxo automacao pos-venda 12 touchpoints | 10 | 21 dias |`;
     },
-    sprint: () => `## Sprint Planning
-
-| # | Tarefa | Agente | Prioridade | Status |
-|---|--------|--------|-----------|--------|
-| 1 | Revisar campanhas ativas | 03, 04 | P1 | Pendente |
-| 2 | Refresh criativos | 05 | P1 | Pendente |
-| 3 | Calendario editorial semana | 07 | P2 | Pendente |
-| 4 | Audit landing pages | 16 | P2 | Pendente |
-| 5 | Dashboard KPIs atualizado | 13 | P3 | Pendente |
-
-### Metas
-- [ ] ROAS > 3x em campanhas ativas
-- [ ] 5 novos criativos em producao
-- [ ] Calendario editorial aprovado
-- [ ] 3 testes A/B rodando`,
-    relatorio: () => `## Relatorio Mensal Consolidado
-
-### KPIs Gerais
-| Metrica | Valor | Meta | Status |
-|---------|-------|------|--------|
-| Leads Gerados | - | - | Configurar |
-| CPL Medio | - | - | Configurar |
-| Taxa Conversao | - | >3% | Configurar |
-| ROAS | - | >3x | Configurar |
-
-> Configure os KPIs do cliente para dados reais.
-
-### Analise AEMR
-- **Aquisicao:** Revisar CPL e volume de leads
-- **Engajamento:** Verificar engagement rate social
-- **Monetizacao:** Analisar taxa SQL e ticket medio
-- **Retencao:** Checar NPS e churn`,
   },
-  '03': {
-    campanha: () => `## Estrutura de Campanha Google Ads
+  // Social Media: legendas prontas
+  '07': {
+    legenda: () => `## 3 Legendas para Instagram (Framework 60/20/20)
 
-### Campanha Search
-| Elemento | Configuracao |
-|----------|-------------|
-| Objetivo | Conversao (Lead/Venda) |
-| Rede | Search |
-| Orcamento | R$ XX/dia |
-| Lance | Maximizar Conversoes (tCPA) |
-| Segmentacao | Brasil / Regiao |
+### 1. Autoridade (60% — educa)
+\`Sua internet cai no pior momento? 90% das empresas perdem R$12k/ano com instabilidade. Fibra optica dedicada nao da espaco para "desculpa do modem".\`
 
-### Grupos de Anuncio
-| Grupo | Keywords | Match Type |
-|-------|----------|------------|
-| Grupo 1 - Marca | [marca], "marca" | Exact, Phrase |
-| Grupo 2 - Produto | [produto principal] | Exact |
-| Grupo 3 - Problema | "como resolver X" | Phrase |
+### 2. Interacao (20% — conecta)
+\`Comenta aqui: em quantos minutos sua internet cai hoje? Ja tivemos cliente que mediu — e decidiu migrar no mesmo dia.\`
 
-### Quality Score Checklist
-- [ ] Relevancia keyword-anuncio > 7
-- [ ] LP com keyword no H1
-- [ ] Velocidade LP < 3s
-- [ ] CTR esperado > media`,
-    quality: () => `## Audit Quality Score
+### 3. Oferta (20% — converte)
+\`100 MEGA de fibra dedicada com SLA 99,9% por R$149/mes. So hoje, adesao zero. Link na bio.\`
 
-### Checklist
-| Fator | Peso | Verificar |
-|-------|------|----------|
-| Relevancia Ad | Alto | Keyword no headline + description |
-| CTR Esperado | Alto | Historico + extensoes |
-| Experiencia LP | Alto | Velocidade + relevancia + mobile |
+### Por que funciona
+- **Framework 60/20/20** (autoridade/interacao/oferta) para calendario editorial mensal
+- Cada legenda tem hook + prova + CTA implicito
+- Tom direto, sem fluff, adaptavel para qualquer provedor de fibra`,
+    calendario: () => `## Calendario Editorial Mensal (Framework 60/20/20)
 
-### Acoes para Melhorar
-1. **Keywords no Ad Copy** — Insira a keyword exata no Headline 1
-2. **LP Dedicada** — Uma LP por grupo de keywords
-3. **Velocidade** — Core Web Vitals verdes
-4. **Mobile First** — 60%+ trafego e mobile`,
+### Distribuicao Ideal
+- **60% Autoridade** — conteudo educacional, insights, bastidores profissionais
+- **20% Interacao** — enquetes, perguntas, UGC, trends participativos
+- **20% Oferta** — promocoes, ofertas limitadas, CTAs de venda direta
+
+### Grid Mensal (20 posts)
+| Semana | Autoridade (12) | Interacao (4) | Oferta (4) |
+|--------|-----------------|---------------|------------|
+| 1 | 3 carrosseis educativos | 1 enquete | 1 oferta semanal |
+| 2 | 3 tips rapidas reels | 1 pergunta stories | 1 lancamento |
+| 3 | 3 bastidores + cases | 1 trend participativo | 1 cupom exclusivo |
+| 4 | 3 dados + insights | 1 review/UGC | 1 ultima chance |`,
   },
-  '04': {
-    campanha: () => `## Campanha Meta Ads — Conversao
+  // CRM: 12 pontos de contato
+  '11': {
+    cadencia: () => `## Cadencia de Prospeccao — 12 Pontos de Contato
 
-### Estrutura
-| Nivel | Configuracao |
-|-------|-------------|
-| Campanha | Conversao - [Produto/Servico] |
-| Otimizacao | Compra / Lead |
-| Orcamento | CBO R$ XX/dia |
-| Pixel | Configurado + CAPI |
+### Estrutura Ideal V4 (15 dias)
+| # | Dia | Canal | Tipo | Objetivo |
+|---|-----|-------|------|----------|
+| 1 | D+0 | Email | Apresentacao | Primeiro contato com valor |
+| 2 | D+1 | LinkedIn | Conexao + nota | Estabelecer rapport |
+| 3 | D+3 | Email | Case relevante | Mostrar prova social |
+| 4 | D+4 | WhatsApp | Mensagem curta | Toque humano |
+| 5 | D+5 | Call | Tentativa 1 | Conversa rapida |
+| 6 | D+7 | Email | Conteudo rico (ebook/artigo) | Nutrir sem pedir |
+| 7 | D+8 | LinkedIn | Interacao organica em post | Presence marketing |
+| 8 | D+10 | Email | Pergunta provocativa | Ativar curiosidade |
+| 9 | D+11 | Call | Tentativa 2 (horario diferente) | Segunda chance |
+| 10 | D+13 | WhatsApp | Audio de 30s personalizado | Diferenciacao total |
+| 11 | D+14 | Email | Break-up email (ultima tentativa) | Gatilho da perda |
+| 12 | D+15 | LinkedIn | Like/comentario final | Manter na memoria |
 
-### Conjuntos de Anuncio
-| Conjunto | Publico | Tamanho Est. |
-|----------|---------|-------------|
-| Lookalike 1% | Base clientes | 1-2M |
-| Interesse | [Interesses relevantes] | 2-5M |
-| Retargeting | Visitantes 30d | 5-50K |
-| Broad | 25-55 Brasil | 10M+ |
-
-### Metricas Alvo
-| Metrica | Meta |
-|---------|------|
-| CPM | < R$ 30 |
-| CTR | > 1.5% |
-| CPC | < R$ 2 |
-| CPL | < R$ XX |
-| ROAS | > 3x |`,
-    escala: () => `## Estrategia de Escala Meta Ads
-
-### Regras
-1. **Escala Vertical:** +20% orcamento a cada 3 dias com CPA estavel
-2. **Escala Horizontal:** Duplicar conjunto vencedor com novo publico
-3. **Kill Rule:** Pausar se CPA > 2x meta por 3 dias
-
-### Funil de Criativos
-| Fase | Volume | Rotacao |
-|------|--------|---------|
-| Teste | 5-10/semana | Eliminar < CTR medio |
-| Escala | 3-5 vencedores | Manter ate fadigar |
-| Refresh | 2-3/semana | Substituir fadigados |`,
+### Regras de Resposta Automatica
+- **Respondeu positivo:** Avancar para fechamento
+- **Respondeu negativo:** Agendar reengajamento em 90 dias
+- **Sem resposta:** Retirar da cadencia, marcar como "nao engajado"
+- **Respondeu pedindo espaco:** Pausar 30 dias e retomar com novo angulo`,
   },
 };
+
+function hasAnyKey(): boolean {
+  try {
+    return !!(getClaudeKey() || getGeminiKey() || getOpenRouterKey());
+  } catch {
+    return false;
+  }
+}
 
 export function generateOfflineResponse(text: string, agent: Agent | null, client: Client | null): string {
   const t = text.toLowerCase();
@@ -172,6 +127,10 @@ export function generateOfflineResponse(text: string, agent: Agent | null, clien
 
 function buildGenericResponse(text: string, agent: Agent | null, client: Client | null): string {
   const clientInfo = client ? `\n**Cliente:** ${client.name} | ${client.segment} | STEP: ${client.step} | V4: ${client.pilar}` : '';
+  const apiNote = hasAnyKey()
+    ? `> **Nota:** Todas as chaves estao configuradas (Claude/Gemini/OpenRouter). Se voce esta vendo esta resposta, significa que houve um erro de comunicacao com TODAS as APIs. Verifique sua conexao ou o saldo das contas.`
+    : `> **Nota:** Configure ao menos uma chave de IA em Settings (Claude, Gemini ou OpenRouter).`;
+
   return `## ${agent?.icon ?? ''} ${agent?.name ?? 'Agente'} — Resposta${clientInfo}
 
 Recebi sua solicitacao: **"${text}"**
@@ -180,7 +139,7 @@ Recebi sua solicitacao: **"${text}"**
 Baseado no framework ${agent?.frameworks ?? 'V4'}, recomendo:
 
 1. **Diagnostico** — Avaliar situacao atual com dados
-2. **Planejamento** — Definir metas e KPIs especificos
+2. **Planejamento** — Definir metas e KPIs especificos (framework 60/20/20 para conteudo, 12 touchpoints para CRM)
 3. **Execucao** — Implementar com prioridade P1/P2/P3
 4. **Medicao** — Acompanhar resultados 30/60/90 dias
 
@@ -190,5 +149,5 @@ Baseado no framework ${agent?.frameworks ?? 'V4'}, recomendo:
 - [ ] Criar plano de acao detalhado
 - [ ] Iniciar execucao P1
 
-> **Nota:** Para respostas completas com IA, configure sua chave Gemini nas configuracoes.`;
+${apiNote}`;
 }

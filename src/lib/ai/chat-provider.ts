@@ -42,6 +42,54 @@ export function getStatus(): AIStatus {
   };
 }
 
+/**
+ * Cache de erros recentes por provider. Se um provider falha com erro de billing/auth
+ * recentemente (< 5 min), pulamos ele automaticamente na proxima request.
+ * Isso evita gastar tempo tentando Claude quando ja sabemos que saldo esta zerado.
+ */
+interface ProviderErrorCache {
+  timestamp: number;
+  reason: string; // 'billing' | 'auth' | 'rate-limit' | 'network' | 'unknown'
+}
+
+const providerErrorCache: Record<string, ProviderErrorCache> = {};
+const ERROR_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
+
+function categorizeError(err: any): string {
+  const msg = (err?.message || String(err)).toLowerCase();
+  if (msg.includes('credit') || msg.includes('balance') || msg.includes('insufficient')) return 'billing';
+  if (msg.includes('401') || msg.includes('403') || msg.includes('unauthorized') || msg.includes('authentication')) return 'auth';
+  if (msg.includes('429') || msg.includes('rate') || msg.includes('quota')) return 'rate-limit';
+  if (msg.includes('timeout') || msg.includes('network') || msg.includes('fetch')) return 'network';
+  return 'unknown';
+}
+
+function markProviderError(provider: string, err: any): void {
+  providerErrorCache[provider] = { timestamp: Date.now(), reason: categorizeError(err) };
+}
+
+function isProviderBlocked(provider: string): boolean {
+  const cached = providerErrorCache[provider];
+  if (!cached) return false;
+  const age = Date.now() - cached.timestamp;
+  if (age > ERROR_CACHE_TTL_MS) {
+    delete providerErrorCache[provider];
+    return false;
+  }
+  // Bloqueia apenas para billing e auth (erros que nao mudam sozinhos)
+  return cached.reason === 'billing' || cached.reason === 'auth';
+}
+
+export function clearProviderErrors(): void {
+  for (const key of Object.keys(providerErrorCache)) {
+    delete providerErrorCache[key];
+  }
+}
+
+export function getProviderErrors(): Record<string, ProviderErrorCache> {
+  return { ...providerErrorCache };
+}
+
 export function getClaudeKey(): string {
   return (window as any).__CLAUDE_KEY__ || localStorage.getItem(LS_KEYS.claudeKey) || import.meta.env.VITE_CLAUDE_API_KEY || '';
 }
@@ -91,20 +139,48 @@ export function setAutoModelEnabled(enabled: boolean): void {
 export function resolveModel(userPrompt: string, agentId: string): ModelDefinition | null {
   const status = getStatus();
 
+  // Providers bloqueados (billing/auth conhecidos recentes) - pula automaticamente
+  const claudeBlocked = isProviderBlocked('claude');
+  const geminiBlocked = isProviderBlocked('gemini');
+  const openrouterBlocked = isProviderBlocked('openrouter');
+
+  const claudeUsable = status.hasClaudeKey && !claudeBlocked;
+  const geminiUsable = status.hasGeminiKey && !geminiBlocked;
+  const openrouterUsable = status.hasOpenRouterKey && !openrouterBlocked;
+
   if (status.autoModelEnabled) {
-    return autoSelectModel(userPrompt, agentId, status.hasClaudeKey, status.hasGeminiKey, status.hasOpenRouterKey);
+    const selected = autoSelectModel(userPrompt, agentId, claudeUsable, geminiUsable, openrouterUsable);
+    if (selected) return selected;
   }
 
   if (status.selectedModelId) {
     const model = MODELS[status.selectedModelId];
     if (model) {
-      if (model.provider === 'claude' && !status.hasClaudeKey) return null;
-      if (model.provider === 'gemini' && !status.hasGeminiKey) return null;
-      if (model.provider === 'openrouter' && !status.hasOpenRouterKey) return null;
+      if (model.provider === 'claude' && !claudeUsable) {
+        // Modelo preferido indisponivel - fallback silencioso para Gemini
+        if (geminiUsable) return MODELS['gemini-3-1-flash'];
+        if (openrouterUsable) return MODELS['gpt-5-4-mini'];
+        return null;
+      }
+      if (model.provider === 'gemini' && !geminiUsable) {
+        if (claudeUsable) return MODELS['claude-sonnet-4-6'];
+        if (openrouterUsable) return MODELS['gpt-5-4-mini'];
+        return null;
+      }
+      if (model.provider === 'openrouter' && !openrouterUsable) {
+        if (claudeUsable) return MODELS['claude-sonnet-4-6'];
+        if (geminiUsable) return MODELS['gemini-3-1-flash'];
+        return null;
+      }
       return model;
     }
   }
 
+  // Ordem de preferencia default considerando providers nao bloqueados
+  if (claudeUsable) return MODELS['claude-sonnet-4-6'];
+  if (geminiUsable) return MODELS['gemini-3-1-flash'];
+  if (openrouterUsable) return MODELS['gpt-5-4-mini'];
+  // Se todos bloqueados mas com chaves, tenta mesmo assim (pode ter liberado)
   if (status.hasClaudeKey) return MODELS['claude-sonnet-4-6'];
   if (status.hasGeminiKey) return MODELS['gemini-3-1-flash'];
   if (status.hasOpenRouterKey) return MODELS['gpt-5-4-mini'];
@@ -192,6 +268,7 @@ function isFallbackWorthy(err: any): boolean {
 
 /**
  * Encontra o melhor modelo alternativo do provider oposto.
+ * Considera providers bloqueados (que falharam recentemente) por ultimo.
  */
 function findFallbackModel(excludeProvider: APIProvider): ModelDefinition | null {
   const status = getStatus();
@@ -201,13 +278,22 @@ function findFallbackModel(excludeProvider: APIProvider): ModelDefinition | null
     openrouter: 'gpt-5-4-mini',
   };
 
-  const order: APIProvider[] = ['claude', 'gemini', 'openrouter'].filter((p) => p !== excludeProvider) as APIProvider[];
-
-  for (const prov of order) {
+  const candidates: APIProvider[] = (['claude', 'gemini', 'openrouter'] as APIProvider[]).filter((p) => p !== excludeProvider);
+  // Prioriza providers que tem chave E nao estao bloqueados
+  const usable: APIProvider[] = [];
+  const blocked: APIProvider[] = [];
+  for (const prov of candidates) {
     const hasKey = prov === 'claude' ? status.hasClaudeKey
                  : prov === 'gemini' ? status.hasGeminiKey
                  : status.hasOpenRouterKey;
-    if (hasKey && MODELS[preferences[prov]]) {
+    if (!hasKey) continue;
+    if (isProviderBlocked(prov)) blocked.push(prov);
+    else usable.push(prov);
+  }
+
+  const order = [...usable, ...blocked];
+  for (const prov of order) {
+    if (MODELS[preferences[prov]]) {
       return MODELS[preferences[prov]];
     }
   }
@@ -234,6 +320,9 @@ export async function sendChat(req: ChatRequest & { agentId?: string; overrideMo
   try {
     return await executeModelCall(model, enhancedReq);
   } catch (err) {
+    // Marca erro no cache para proximas requests pularem esse provider
+    markProviderError(model.provider, err);
+
     // Se o erro for de billing/auth/rede, tenta fallback automatico para outro provider
     if (!isFallbackWorthy(err)) throw err;
 
@@ -256,6 +345,8 @@ export async function sendChat(req: ChatRequest & { agentId?: string; overrideMo
       // Anexa indicacao de fallback no label
       return { ...result, model: { ...fallbackModel, label: `${fallbackModel.label} (fallback de ${model.label})` } };
     } catch (fbErr) {
+      markProviderError(fallbackModel.provider, fbErr);
+
       // Se o fallback tambem falhar, tenta o ultimo provider restante
       const secondFallback = findFallbackModel(fallbackModel.provider);
       if (!secondFallback || secondFallback.provider === model.provider) throw fbErr;
@@ -265,8 +356,13 @@ export async function sendChat(req: ChatRequest & { agentId?: string; overrideMo
         secSystemPrompt = `${secondFallback.systemPromptStyle}\n\n---\n\n${secSystemPrompt}`;
       }
       const secReq: ChatRequest = { ...req, systemPrompt: secSystemPrompt, maxTokens: Math.min(req.maxTokens ?? secondFallback.maxOutput, secondFallback.maxOutput) };
-      const result = await executeModelCall(secondFallback, secReq);
-      return { ...result, model: { ...secondFallback, label: `${secondFallback.label} (2x fallback)` } };
+      try {
+        const result = await executeModelCall(secondFallback, secReq);
+        return { ...result, model: { ...secondFallback, label: `${secondFallback.label} (2x fallback)` } };
+      } catch (err3) {
+        markProviderError(secondFallback.provider, err3);
+        throw err3;
+      }
     }
   }
 }
