@@ -287,6 +287,8 @@ export const ChatArea: React.FC = () => {
         userPrompt: userText,
         model: modelToUse ?? undefined,
         includeReferences: true,
+        // Modo Normal = compact (sem SUPREMO gigante). DEEP MODE injeta via deep-response.
+        compact: !deepMode,
       });
 
       // Correcoes aprendidas com feedback anterior (globais por agente/cliente)

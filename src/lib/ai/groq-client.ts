@@ -26,10 +26,19 @@ export type GroqApiModel =
 
 const DEFAULT_MODEL: GroqApiModel = 'llama-3.3-70b-versatile';
 
-export async function callGroq(
+// Mapa de TPM (tokens per minute) de cada modelo no free tier
+// Se request excede TPM do modelo, tenta modelo com TPM maior
+const TPM_FALLBACK: Record<string, GroqApiModel> = {
+  'llama-3.3-70b-versatile': 'llama-3.1-8b-instant',  // 12k -> 30k TPM
+  'deepseek-r1-distill-llama-70b': 'llama-3.1-8b-instant',
+  'mixtral-8x7b-32768': 'llama-3.1-8b-instant',
+  'qwen-2.5-72b-instruct': 'llama-3.1-8b-instant',
+};
+
+async function doGroqCall(
   req: ChatRequest,
   apiKey: string,
-  model: GroqApiModel = DEFAULT_MODEL
+  model: GroqApiModel
 ): Promise<string> {
   const body = {
     model,
@@ -38,7 +47,7 @@ export async function callGroq(
       { role: 'user', content: req.userPrompt },
     ],
     temperature: req.temperature ?? 0.8,
-    max_tokens: Math.min(req.maxTokens ?? 8192, 32768), // Groq max varies per model
+    max_tokens: Math.min(req.maxTokens ?? 8192, 32768),
     stream: false,
   };
 
@@ -73,6 +82,32 @@ export async function callGroq(
   const text = data.choices?.[0]?.message?.content;
   if (!text) throw new Error('Resposta vazia da Groq API');
   return text;
+}
+
+export async function callGroq(
+  req: ChatRequest,
+  apiKey: string,
+  model: GroqApiModel = DEFAULT_MODEL
+): Promise<string> {
+  try {
+    return await doGroqCall(req, apiKey, model);
+  } catch (err: any) {
+    const msg = err?.message || '';
+    // Se erro 413 (Request too large) ou 429 (rate limit) + existe fallback: tenta modelo menor
+    if ((msg.includes('413') || msg.includes('Request too large') || msg.includes('tokens per minute')) && TPM_FALLBACK[model]) {
+      console.warn(`[Groq] ${model} excedeu TPM, fallback para ${TPM_FALLBACK[model]}`);
+      // Trunca user prompt se ainda estiver muito grande (free tier 8b tem 30k TPM)
+      const truncatedReq: ChatRequest = {
+        ...req,
+        // Reduz system prompt para 8000 chars se for muito grande (assumindo 8b tem ctx menor)
+        systemPrompt: req.systemPrompt.length > 30000
+          ? req.systemPrompt.substring(0, 30000) + '\n\n[Prompt truncado para caber no limite Groq Free Tier]'
+          : req.systemPrompt,
+      };
+      return await doGroqCall(truncatedReq, apiKey, TPM_FALLBACK[model]);
+    }
+    throw err;
+  }
 }
 
 export function isValidGroqKey(key: string): boolean {

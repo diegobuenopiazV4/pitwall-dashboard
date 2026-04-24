@@ -15,12 +15,14 @@ interface BuildPromptOptions {
   userPrompt?: string; // Para selecionar referencias relevantes
   model?: ModelDefinition;
   includeReferences?: boolean;
+  compact?: boolean; // Se true, usa prompt reduzido (sem SUPREMO completo) - ideal para Normal mode ou Groq
 }
 
 export function buildSystemPrompt(opts: BuildPromptOptions): string {
   const {
     agent, client, userName, ppFlags, tasks, sprintWeek, sprintGoals,
     recentMessages, userPrompt = '', model, includeReferences = true,
+    compact = false,
   } = opts;
 
   const modelLabel = model ? `${model.label} (${model.provider})` : 'Modelo padrao';
@@ -52,14 +54,17 @@ export function buildSystemPrompt(opts: BuildPromptOptions): string {
 `;
   }
 
-  // Injeta SUPREMO prompt (8.000-12.000 palavras estruturadas) do agente
-  // Substitui o antigo agentSpecificFrameworks por versao muito mais profunda
-  const supremoPrompt = getSupremoPrompt(agent.id);
-  if (supremoPrompt) {
-    sp += supremoPrompt;
-  } else {
-    // Fallback para agentes sem SUPREMO ainda
+  // Modo COMPACT: usa apenas frameworks especificos (curto)
+  // Modo COMPLETO (DEEP): injeta SUPREMO prompt de 8-12k palavras
+  if (compact) {
     sp += agentSpecificFrameworks(agent.id);
+  } else {
+    const supremoPrompt = getSupremoPrompt(agent.id);
+    if (supremoPrompt) {
+      sp += supremoPrompt;
+    } else {
+      sp += agentSpecificFrameworks(agent.id);
+    }
   }
 
   sp += `
