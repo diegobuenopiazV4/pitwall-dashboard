@@ -195,7 +195,7 @@ export const DocumentsView: React.FC = () => {
         </div>
 
         {/* Preview */}
-        <div className="flex-1 overflow-y-auto bg-[#0a0a0f]">
+        <div className="flex-1 min-h-0 overflow-y-auto bg-[#0a0a0f]">
           {selectedDoc ? (
             <div className="p-6 max-w-3xl mx-auto">
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">

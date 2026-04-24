@@ -1,94 +1,99 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 
 interface Props {
-  containerSelector?: string; // CSS selector do container scrollavel
+  /** ID do container scrollavel. Default: 'chat-messages-container' */
+  targetId?: string;
 }
 
 /**
- * Botoes flutuantes para ir ao topo ou rodape do container de mensagens.
- * Aparecem apenas quando ha espaco para scrollar.
+ * Botoes flutuantes de navegacao rapida (topo/fim).
+ * Aparecem sempre que ha pelo menos 50px para scrollar em cada direcao.
+ * Tambem forca comportamento de smooth scroll + overscroll-contain.
  */
-export const ScrollButtons: React.FC<Props> = ({ containerSelector }) => {
-  const [showTop, setShowTop] = useState(false);
-  const [showBottom, setShowBottom] = useState(false);
+export const ScrollButtons: React.FC<Props> = ({ targetId = 'chat-messages-container' }) => {
+  const [state, setState] = useState({ canScrollUp: false, canScrollDown: false });
   const containerRef = useRef<HTMLElement | null>(null);
+  const retryCountRef = useRef(0);
+
+  const updateState = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const maxScroll = scrollHeight - clientHeight;
+    setState({
+      canScrollUp: scrollTop > 50,
+      canScrollDown: maxScroll - scrollTop > 50,
+    });
+  }, []);
 
   useEffect(() => {
-    // Acha o container scrollavel. Se nao foi passado selector, procura o mais proximo div com overflow-y-auto
-    const findContainer = (): HTMLElement | null => {
-      if (containerSelector) {
-        return document.querySelector(containerSelector) as HTMLElement | null;
+    const findAndBind = () => {
+      const container = document.getElementById(targetId);
+      if (!container) {
+        // Retry ate 10x em intervalos de 200ms (container pode nao estar no DOM ainda)
+        if (retryCountRef.current < 10) {
+          retryCountRef.current++;
+          setTimeout(findAndBind, 200);
+        }
+        return;
       }
-      // Procura o primeiro elemento com classe 'overflow-y-auto' dentro do chat
-      const candidates = document.querySelectorAll('.overflow-y-auto');
-      for (const el of Array.from(candidates)) {
-        const rect = el.getBoundingClientRect();
-        if (rect.height > 200) return el as HTMLElement;
-      }
-      return null;
+      containerRef.current = container;
+      retryCountRef.current = 0;
+      updateState();
+
+      const onScroll = () => updateState();
+      container.addEventListener('scroll', onScroll, { passive: true });
+
+      const resizeObs = new ResizeObserver(updateState);
+      resizeObs.observe(container);
+
+      const mutObs = new MutationObserver(updateState);
+      mutObs.observe(container, { childList: true, subtree: true });
+
+      return () => {
+        container.removeEventListener('scroll', onScroll);
+        resizeObs.disconnect();
+        mutObs.disconnect();
+      };
     };
 
-    const container = findContainer();
-    if (!container) return;
-    containerRef.current = container;
-
-    const updateButtons = () => {
-      if (!container) return;
-      const scrollTop = container.scrollTop;
-      const scrollHeight = container.scrollHeight;
-      const clientHeight = container.clientHeight;
-      const maxScroll = scrollHeight - clientHeight;
-
-      setShowTop(scrollTop > 200);
-      setShowBottom(maxScroll - scrollTop > 200);
-    };
-
-    updateButtons();
-    container.addEventListener('scroll', updateButtons, { passive: true });
-
-    // Observer para detectar mudancas de conteudo (ex: nova mensagem adicionada)
-    const observer = new MutationObserver(updateButtons);
-    observer.observe(container, { childList: true, subtree: true });
-
+    const cleanup = findAndBind();
     return () => {
-      container.removeEventListener('scroll', updateButtons);
-      observer.disconnect();
+      if (typeof cleanup === 'function') cleanup();
     };
-  }, [containerSelector]);
+  }, [targetId, updateState]);
 
   const scrollToTop = () => {
     containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const scrollToBottom = () => {
-    if (!containerRef.current) return;
-    containerRef.current.scrollTo({
-      top: containerRef.current.scrollHeight,
-      behavior: 'smooth',
-    });
+    const c = containerRef.current;
+    if (!c) return;
+    c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' });
   };
 
-  if (!showTop && !showBottom) return null;
+  if (!state.canScrollUp && !state.canScrollDown) return null;
 
   return (
-    <div className="absolute right-4 bottom-20 flex flex-col gap-1.5 z-30 pointer-events-auto">
-      {showTop && (
+    <div className="absolute right-4 bottom-24 flex flex-col gap-1.5 z-50 pointer-events-auto">
+      {state.canScrollUp && (
         <button
           onClick={scrollToTop}
-          className="w-10 h-10 rounded-full bg-[#1a1a24] border border-[#e4243d]/40 text-[#ff4d5a] hover:bg-[#e4243d]/10 hover:border-[#e4243d]/70 shadow-xl flex items-center justify-center transition-all"
-          title="Ir para o topo"
+          className="w-10 h-10 rounded-full bg-[#1a1a24] border border-[#e4243d]/50 text-[#ff4d5a] hover:bg-[#e4243d]/10 hover:border-[#e4243d] hover:scale-110 shadow-xl flex items-center justify-center transition-all"
+          title="Ir para o topo (Home)"
         >
-          <ChevronUp size={16} />
+          <ChevronUp size={18} />
         </button>
       )}
-      {showBottom && (
+      {state.canScrollDown && (
         <button
           onClick={scrollToBottom}
-          className="w-10 h-10 rounded-full bg-[#e4243d] hover:bg-[#ff4d5a] text-white shadow-xl flex items-center justify-center transition-all"
-          title="Ir para o rodape"
+          className="w-10 h-10 rounded-full bg-gradient-to-br from-[#e4243d] to-[#ff4d5a] text-white hover:scale-110 shadow-xl flex items-center justify-center transition-all ring-2 ring-[#e4243d]/20"
+          title="Ir para o fim (End)"
         >
-          <ChevronDown size={16} />
+          <ChevronDown size={18} />
         </button>
       )}
     </div>

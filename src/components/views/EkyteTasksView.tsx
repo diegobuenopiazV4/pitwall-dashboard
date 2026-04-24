@@ -130,7 +130,7 @@ Retorne APENAS JSON valido:
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#0a0a0f] p-6">
+    <div className="flex-1 min-h-0 overflow-y-auto bg-[#0a0a0f] p-6">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6 p-6 rounded-2xl bg-gradient-to-br from-[#e4243d]/10 via-[#111118] to-[#1a1a24] border border-[#e4243d]/20">
           <div className="flex items-center gap-3 mb-3">
