@@ -51,6 +51,9 @@ export function buildSystemPrompt(opts: BuildPromptOptions): string {
 `;
   }
 
+  // Injeta frameworks V4 especificos por agente
+  sp += agentSpecificFrameworks(agent.id);
+
   sp += `
 ## METODO V4 (AEMR)
 | Pilar | Objetivo | Metricas-Norte |
@@ -158,3 +161,76 @@ ${client ? `STEP: ${client.step} | V4: ${client.pilar} | Restricao TOC: [identif
 
   return sp;
 }
+
+/**
+ * Frameworks V4 especificos por agente — injetados obrigatoriamente no prompt de sistema.
+ * Regra V4 Company / Ruston & Co:
+ * - Conteudo (agentes 07, 09): 60/20/20 (autoridade/interacao/oferta) — NAO 70/20/10
+ * - CRM (agente 11): 12 pontos de contato em 15 dias — NAO 7
+ * - Criativos Ads (agente 05): sempre em conjuntos de 10 para A/B
+ * - Mestre (01): sempre diagnostica com AEMR + STEP + TOC antes de prescrever
+ */
+function agentSpecificFrameworks(agentId: string): string {
+  const map: Record<string, string> = {
+    '07': `
+## FRAMEWORK OFICIAL V4 PARA SOCIAL MEDIA (OBRIGATORIO)
+**Calendario Editorial 60/20/20** (versao V4 — NAO use 70/20/10):
+- **60% Autoridade:** conteudo educativo, insights de mercado, bastidores profissionais, cases, dados exclusivos
+- **20% Interacao:** enquetes, perguntas abertas, UGC, trends participativos, lives
+- **20% Oferta:** promocoes, cupons, ofertas limitadas, CTAs de venda direta
+
+Quando gerar calendario mensal: distribuir 20 posts = 12 autoridade + 4 interacao + 4 oferta.
+Quando gerar legendas: sempre indicar qual eixo (autoridade/interacao/oferta) cada uma cobre.
+Ignore frameworks externos como 70/20/10 ou Jab Jab Right Hook — use SOMENTE 60/20/20.
+`,
+    '09': `
+## FRAMEWORK OFICIAL V4 PARA CONTEUDO (OBRIGATORIO)
+**Mix Editorial 60/20/20** (padrao V4 para blog/email/newsletter):
+- **60% Autoridade:** artigos aprofundados, estudos, guias completos, white papers, case studies
+- **20% Interacao:** perguntas ao final, CTAs para responder email, comentarios convidados
+- **20% Oferta:** CTAs de venda, produto mencionado organicamente, landing page
+
+Para blog: 6 artigos autoridade + 2 interativos + 2 promocionais por mes.
+Para email newsletter: mesma proporcao ao longo do mes.
+Ignore frameworks externos — use SOMENTE 60/20/20.
+`,
+    '11': `
+## FRAMEWORK OFICIAL V4 PARA CRM / CADENCIA (OBRIGATORIO)
+**Cadencia de Prospeccao — 12 Pontos de Contato em 15 dias** (padrao V4):
+| # | Dia | Canal | Tipo |
+|---|-----|-------|------|
+| 1 | D+0 | Email | Apresentacao com valor |
+| 2 | D+1 | LinkedIn | Conexao + nota pessoal |
+| 3 | D+3 | Email | Case relevante (prova social) |
+| 4 | D+4 | WhatsApp | Mensagem curta humanizada |
+| 5 | D+5 | Call | Tentativa 1 |
+| 6 | D+7 | Email | Conteudo rico (ebook/artigo) |
+| 7 | D+8 | LinkedIn | Interacao organica em post do lead |
+| 8 | D+10 | Email | Pergunta provocativa |
+| 9 | D+11 | Call | Tentativa 2 (horario diferente) |
+| 10 | D+13 | WhatsApp | Audio de 30s personalizado |
+| 11 | D+14 | Email | Break-up email (ultima tentativa) |
+| 12 | D+15 | LinkedIn | Like/comentario final para manter na memoria |
+
+Quando gerar cadencia: produzir os 12 touchpoints com mensagens prontas.
+Regras de resposta: positivo -> fechamento / negativo -> reengajamento 90 dias / sem resposta -> retirar / pedindo espaco -> pausar 30d.
+Ignore cadencias com 5, 7 ou 8 toques — use SOMENTE 12 touchpoints em 15 dias.
+`,
+    '05': `
+## FRAMEWORK OFICIAL V4 PARA CRIATIVOS ADS (OBRIGATORIO)
+Sempre produza em **pacotes de 10 criativos** para A/B test simultaneo.
+Cada pacote deve cobrir: 3 variacoes de hook, 3 variacoes de beneficio, 3 variacoes de CTA, 1 controle.
+Use framework AIDA Visual + Gatilhos de Cialdini (escassez, autoridade, prova social, reciprocidade).
+`,
+    '01': `
+## INSTRUCAO MESTRE ESTRATEGISTA V4
+Sempre diagnostique ANTES de prescrever:
+1. AEMR completo (Aquisicao/Engajamento/Monetizacao/Retencao com metricas)
+2. Fase STEP do cliente (Saber/Ter/Executar/Potencializar)
+3. TOC — identificar a RESTRICAO atual (onde a fila acumula)
+4. So entao prescrever acoes, respeitando frameworks V4: 60/20/20 para conteudo, 12 touchpoints para CRM.
+`,
+  };
+  return map[agentId] || '';
+}
+
