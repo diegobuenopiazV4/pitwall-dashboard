@@ -10,7 +10,13 @@ import { AgentSkillsBar } from './AgentSkillsBar';
 import { ScrollButtons } from './ScrollButtons';
 import { AgentSelector } from './AgentSelector';
 import { ClientSelector } from './ClientSelector';
+import { SlashCommandMenu } from './SlashCommandMenu';
+import { IntentBanner } from './IntentBanner';
 import { isComplaint, categorizeComplaint, addCorrection, getRelevantCorrections, buildCorrectionsBlock } from '../../lib/learning/feedback-system';
+import { detectIntent } from '../../lib/intent/intent-detector';
+import type { SlashCommand } from '../../lib/commands/slash-commands';
+import { loadClientMemory, formatMemoryForPrompt } from '../../lib/memory/client-memory';
+import { generateThreadTitle } from '../../lib/conversations/auto-title';
 import { FileUpload, type AttachedFile } from '../upload/FileUpload';
 import { buildSystemPrompt } from '../../lib/agents/system-prompt-builder';
 import { autoSelectAgent } from '../../lib/agents/auto-router';
@@ -35,10 +41,84 @@ export const ChatArea: React.FC = () => {
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [showUpload, setShowUpload] = useState(false);
   const [pendingModelId, setPendingModelId] = useState<string | undefined>(undefined);
+  const [slashOpen, setSlashOpen] = useState(false);
+  const [slashQuery, setSlashQuery] = useState('');
+  const [intentDismissed, setIntentDismissed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const convKey = getConvKey();
   const currentMessages = messages[convKey] ?? [];
+
+  const { setViewMode, selectClient } = useAppStore();
+
+  // Intent detection reativo enquanto usuario digita
+  const intentSuggestion = React.useMemo(() => {
+    if (intentDismissed || slashOpen) return null;
+    return detectIntent(input);
+  }, [input, intentDismissed, slashOpen]);
+
+  // Reset dismiss quando input muda muito
+  React.useEffect(() => {
+    if (input.length < 5) setIntentDismissed(false);
+  }, [input]);
+
+  // Escutar evento Cmd+/ para abrir slash menu
+  React.useEffect(() => {
+    const handler = () => {
+      setInput((prev) => prev.endsWith('/') ? prev : prev + '/');
+      setSlashOpen(true);
+      setSlashQuery('');
+      setTimeout(() => textareaRef.current?.focus(), 50);
+    };
+    window.addEventListener('pitwall:open-slash', handler);
+    return () => window.removeEventListener('pitwall:open-slash', handler);
+  }, []);
+
+  // Executa acao de um slash command
+  const handleSlashSelect = (cmd: SlashCommand) => {
+    const action = cmd.action;
+    // Limpa o "/..." do input
+    setInput((prev) => prev.replace(/\/[\w-]*$/, '').trimEnd());
+    setSlashOpen(false);
+    setSlashQuery('');
+
+    if (action.kind === 'view') {
+      setViewMode(action.target);
+    } else if (action.kind === 'link') {
+      window.open(action.url, '_blank', 'noopener');
+    } else if (action.kind === 'event') {
+      window.dispatchEvent(new CustomEvent(action.name));
+    } else if (action.kind === 'agent') {
+      selectAgent(action.agentId);
+    } else if (action.kind === 'client') {
+      const client = action.clientId ? useAppStore.getState().clients.find((c) => c.id === action.clientId) : null;
+      selectClient(client ?? null);
+    } else if (action.kind === 'new-thread') {
+      createNewThread();
+    } else if (action.kind === 'prompt') {
+      setInput(action.prompt);
+    }
+  };
+
+  // Ativa a sugestao de intent
+  const handleIntentActivate = () => {
+    if (!intentSuggestion) return;
+    // Extrai apenas o keyword sem "/"
+    const kw = intentSuggestion.slashCommand.replace('/', '');
+    // Simula execucao via mapeamento
+    const skillMap: Record<string, () => void> = {
+      pauta: () => window.open('https://v4ruston-aprova.vercel.app/', '_blank', 'noopener'),
+      checkin: () => setViewMode('checkin'),
+      trafego: () => setViewMode('trafego'),
+      clipping: () => setViewMode('clipping'),
+      criativos: () => setViewMode('criativos'),
+      ekyte: () => setViewMode('ekyte'),
+      documentos: () => setViewMode('documents'),
+    };
+    const action = skillMap[kw];
+    if (action) action();
+    setIntentDismissed(true);
+  };
 
   const { isListening, isSupported: voiceSupported, toggle: toggleVoice } = useVoiceInput((transcript) => {
     setInput(transcript);
@@ -211,7 +291,11 @@ export const ChatArea: React.FC = () => {
       });
       const correctionsBlock = buildCorrectionsBlock(relevantCorrections);
 
-      const systemPrompt = (clientDocsContext ? `${baseSystemPrompt}\n${clientDocsContext}` : baseSystemPrompt) + correctionsBlock;
+      // Memoria persistente do cliente (brief, decisoes, preferencias)
+      const clientMemory = currentClient ? loadClientMemory(currentClient.id) : null;
+      const memoryBlock = formatMemoryForPrompt(clientMemory);
+
+      const systemPrompt = (clientDocsContext ? `${baseSystemPrompt}\n${clientDocsContext}` : baseSystemPrompt) + memoryBlock + correctionsBlock;
 
       // MODO EXECUCAO: aumenta tokens maximos e injeta instrucao de resposta extensa
       const executionDirective = `\n\n## MODO EXECUCAO ATIVADO (OBRIGATORIO)
@@ -319,11 +403,18 @@ Suas chaves estao configuradas, mas nenhum modelo pode ser resolvido no momento.
       addMessage(newConvKey, botMsg);
       if (activeThreadId) {
         updateThreadAfterMessage(activeThreadId, { content: responseText, role: 'bot' });
-        // Se e a 1a mensagem da thread, auto-renomeia com base na pergunta mais descritiva
-        const isFirstExchange = newMessages.length === 0;
-        if (isFirstExchange && userText.length > 10) {
-          // Mantem titulo ja gerado (autoGenerateTitle foi chamado ao criar thread)
-          // Aqui podemos melhorar: usar IA para resumir, mas por ora o titulo inicial ja basta
+
+        // Titulo IA: gera apos 3+ mensagens (contando user+bot)
+        // Evita rename multiplas vezes - checa se titulo ainda parece automatic
+        const finalCount = newMessages.length + 2; // user + bot recem adicionados
+        const thread = useAppStore.getState().threads.find((t) => t.id === activeThreadId);
+        if (finalCount >= 2 && thread && thread.title.length < 80) {
+          // Dispara em background, nao bloqueia UI
+          generateThreadTitle(userText, responseText).then((aiTitle) => {
+            if (aiTitle && aiTitle.length > 3) {
+              renameThread(activeThreadId!, aiTitle);
+            }
+          }).catch(() => { /* silent */ });
         }
       }
 
@@ -377,9 +468,19 @@ Tente novamente apos ajustar. Peco desculpas pela interrupcao.`;
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
+    const val = e.target.value;
+    setInput(val);
     e.target.style.height = 'auto';
     e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+
+    // Detecta slash command: "/keyword" no final ou apenas "/" em linha nova
+    const match = val.match(/(?:^|\s)\/([\w-]*)$/);
+    if (match) {
+      setSlashOpen(true);
+      setSlashQuery(match[1]);
+    } else {
+      if (slashOpen) setSlashOpen(false);
+    }
   };
 
   const handleAttach = (files: AttachedFile[]) => {
@@ -469,17 +570,59 @@ Tente novamente apos ajustar. Peco desculpas pela interrupcao.`;
           />
         ))}
         {streaming && (
-          <div className="flex items-center gap-2 px-3 py-2">
-            <div className="flex gap-1">
-              <span className="w-2 h-2 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-2 h-2 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-2 h-2 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          <div className="flex items-start gap-3 animate-in fade-in duration-300">
+            <div
+              className="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-sm relative overflow-hidden"
+              style={{ backgroundColor: (currentAgent?.color || '#e4243d') + '22', color: currentAgent?.color }}
+            >
+              <span className="relative z-10">{currentAgent?.icon ?? '\u2655'}</span>
+              <span
+                className="absolute inset-0 rounded-lg animate-ping"
+                style={{ background: (currentAgent?.color || '#e4243d') + '33' }}
+              />
             </div>
-            <span className="text-[10px] text-slate-500">{currentAgent?.name} esta pensando...</span>
+            <div className="flex-1 bg-slate-800/40 border border-slate-700/40 rounded-2xl rounded-bl-sm px-4 py-3 max-w-[85%]">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-xs font-semibold text-slate-300">{currentAgent?.name}</span>
+                <span className="text-[9px] px-1.5 py-0.5 bg-[#e4243d]/15 text-[#ff4d5a] rounded font-medium">
+                  pensando...
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="flex gap-1">
+                  <span className="w-1.5 h-1.5 bg-[#e4243d] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 bg-[#e4243d] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 bg-[#e4243d] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+                <span className="text-[10px] text-slate-500">
+                  processando pela IA ({currentClient?.name || 'contexto geral'})
+                </span>
+              </div>
+            </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Slash Command Menu (flutua acima do input) */}
+      <SlashCommandMenu
+        query={slashQuery}
+        open={slashOpen}
+        onSelect={handleSlashSelect}
+        onClose={() => setSlashOpen(false)}
+        anchorBottom={120}
+      />
+
+      {/* Intent Banner (sugestao de skill ao digitar) */}
+      {intentSuggestion && (
+        <div className="pt-1">
+          <IntentBanner
+            suggestion={intentSuggestion}
+            onActivate={handleIntentActivate}
+            onDismiss={() => setIntentDismissed(true)}
+          />
+        </div>
+      )}
 
       {/* Input */}
       <div className="px-4 py-3 border-t border-slate-800 bg-[#111118]">

@@ -5,6 +5,7 @@ import { Brain, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Message } from '../../lib/agents/types';
 import { MessageActions } from './MessageActions';
+import { MessageFeedback } from './MessageFeedback';
 
 interface Props {
   message: Message;
@@ -90,7 +91,14 @@ export const MessageBubble: React.FC<Props> = ({ message, agentColor, agentName,
           </div>
 
           {!isUser && (
-            <MessageActions content={message.content} messageId={message.id} agentName={agentName} clientName={clientName} />
+            <>
+              <MessageActions content={message.content} messageId={message.id} agentName={agentName} clientName={clientName} />
+              <MessageFeedback
+                messageId={message.id}
+                messageContent={message.content}
+                agentId={message.agentId}
+              />
+            </>
           )}
         </div>
       </div>

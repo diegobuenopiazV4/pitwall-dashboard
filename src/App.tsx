@@ -5,6 +5,7 @@ import { AppLayout } from './components/layout/AppLayout';
 import { SharePage } from './components/views/SharePage';
 import { OnboardingTour, shouldShowTour } from './components/auth/OnboardingTour';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useGlobalShortcuts } from './hooks/useGlobalShortcuts';
 import { useSupabaseSync } from './hooks/useSupabaseSync';
 import { useSupabaseRealtime } from './hooks/useSupabaseRealtime';
 import { supabase, isSupabaseConfigured } from './lib/supabase/client';
@@ -17,6 +18,7 @@ const MainApp: React.FC = () => {
   const [showTour, setShowTour] = useState(false);
 
   useKeyboardShortcuts();
+  useGlobalShortcuts();
   useSupabaseSync();
   useSupabaseRealtime();
 
