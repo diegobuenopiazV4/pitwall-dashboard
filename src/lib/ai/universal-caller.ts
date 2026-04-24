@@ -31,7 +31,7 @@ export interface UniversalAIOptions {
 const DEFAULT_MODELS: Record<AIProvider, string> = {
   claude: 'claude-sonnet-4-6',
   gemini: 'gemini-2.5-pro', // Pro em vez de Flash - qualidade sobre velocidade
-  openrouter: 'openai/gpt-4o',
+  openrouter: 'openai/gpt-5.4',
 };
 
 /**

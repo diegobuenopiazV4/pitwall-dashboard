@@ -42,6 +42,7 @@ interface AppState {
   // Power features
   autoRouterEnabled: boolean;
   chainMode: boolean;
+  deepMode: boolean;            // DEEP MODE: 3-pass generation para respostas 6k-20k palavras
 
   // UI
   streaming: boolean;
@@ -81,6 +82,7 @@ interface AppState {
   toggleBookmark: (messageId: string) => void;
   setAutoRouter: (enabled: boolean) => void;
   setChainMode: (enabled: boolean) => void;
+  setDeepMode: (enabled: boolean) => void;
   setStreaming: (streaming: boolean) => void;
   setSearchOpen: (open: boolean) => void;
   setOverviewOpen: (open: boolean) => void;
@@ -132,6 +134,7 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
 
   autoRouterEnabled: false,
   chainMode: false,
+  deepMode: true,  // Default ativo - usuario pediu respostas extensas
 
   streaming: false,
   searchOpen: false,
@@ -205,6 +208,7 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
 
   setAutoRouter: (autoRouterEnabled) => set({ autoRouterEnabled }),
   setChainMode: (chainMode) => set({ chainMode }),
+  setDeepMode: (deepMode) => set({ deepMode }),
 
   setStreaming: (streaming) => set({ streaming }),
   setSearchOpen: (searchOpen) => set({ searchOpen }),
@@ -317,6 +321,7 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
     ppFlags: state.ppFlags,
     autoRouterEnabled: state.autoRouterEnabled,
     chainMode: state.chainMode,
+    deepMode: state.deepMode,
     bookmarks: Array.from(state.bookmarks), // Set nao serializa
     threads: state.threads,
     currentThreadId: state.currentThreadId,

@@ -217,9 +217,18 @@ async function executeModelCall(model: ModelDefinition, req: ChatRequest): Promi
     const key = getClaudeKey();
     if (!key) throw new Error('Claude key nao configurada');
 
-    if (model.supportsExtendedThinking && model.category === 'reasoning') {
-      const { text, thinkingTokens } = await callClaudeWithThinking(req, key, model.apiModel as ClaudeApiModel);
-      return { text, model, thinkingTokens };
+    // Usa Extended Thinking para qualquer modelo que suporta (nao so reasoning)
+    // Isso ativa o "pensamento profundo" antes da resposta, resultando em respostas
+    // muito mais densas e fundamentadas
+    if (model.supportsExtendedThinking) {
+      try {
+        const { text, thinkingTokens } = await callClaudeWithThinking(req, key, model.apiModel as ClaudeApiModel);
+        return { text, model, thinkingTokens };
+      } catch (err) {
+        // Se thinking falhou (nao suportado ainda ou erro), fallback para chamada normal
+        const text = await callClaude(req, key, model.apiModel as ClaudeApiModel);
+        return { text, model };
+      }
     }
     const text = await callClaude(req, key, model.apiModel as ClaudeApiModel);
     return { text, model };
@@ -311,10 +320,11 @@ export async function sendChat(req: ChatRequest & { agentId?: string; overrideMo
     systemPrompt = `${model.systemPromptStyle}\n\n---\n\n${systemPrompt}`;
   }
 
+  // Sempre usa o MAXIMO que o modelo suporta para respostas densas
   const enhancedReq: ChatRequest = {
     ...req,
     systemPrompt,
-    maxTokens: Math.min(req.maxTokens ?? model.maxOutput, model.maxOutput),
+    maxTokens: req.maxTokens ? Math.min(req.maxTokens, model.maxOutput) : model.maxOutput,
   };
 
   try {

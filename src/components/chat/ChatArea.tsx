@@ -17,6 +17,9 @@ import { detectIntent } from '../../lib/intent/intent-detector';
 import type { SlashCommand } from '../../lib/commands/slash-commands';
 import { loadClientMemory, formatMemoryForPrompt } from '../../lib/memory/client-memory';
 import { generateThreadTitle } from '../../lib/conversations/auto-title';
+import { generateDeepResponse, type DeepProgressEvent } from '../../lib/ai/deep-response';
+import { DeepModeToggle } from './DeepModeToggle';
+import { DeepProgressIndicator } from './DeepProgressIndicator';
 import { FileUpload, type AttachedFile } from '../upload/FileUpload';
 import { buildSystemPrompt } from '../../lib/agents/system-prompt-builder';
 import { autoSelectAgent } from '../../lib/agents/auto-router';
@@ -44,6 +47,9 @@ export const ChatArea: React.FC = () => {
   const [slashOpen, setSlashOpen] = useState(false);
   const [slashQuery, setSlashQuery] = useState('');
   const [intentDismissed, setIntentDismissed] = useState(false);
+  const [deepEvents, setDeepEvents] = useState<DeepProgressEvent[]>([]);
+  const [deepActive, setDeepActive] = useState(false);
+  const deepMode = useAppStore((s) => s.deepMode);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const convKey = getConvKey();
@@ -312,14 +318,50 @@ Se a solicitacao for ambigua, assuma o interpretacao mais COMPLETA possivel e en
 
       const enhancedSystemPrompt = systemPrompt + executionDirective;
 
-      const aiResult = await sendChat({
-        systemPrompt: enhancedSystemPrompt,
-        userPrompt: userText,
-        maxTokens: Math.max(modelToUse?.maxOutput ?? 16384, 16384),
-        temperature: 0.85,
-        agentId: finalAgent.id,
-        overrideModelId: pendingModelId,
-      });
+      // DEEP MODE: 3-pass para respostas 6k-20k palavras
+      let aiResult: Awaited<ReturnType<typeof sendChat>> | null = null;
+      let deepText: string | null = null;
+
+      if (deepMode) {
+        setDeepActive(true);
+        setDeepEvents([]);
+        try {
+          deepText = await generateDeepResponse(
+            userText,
+            enhancedSystemPrompt,
+            (ev) => setDeepEvents((prev) => [...prev, ev])
+          );
+        } catch (deepErr: any) {
+          toast.error(`Deep mode falhou: ${deepErr.message?.slice(0, 80)}`);
+          setDeepActive(false);
+          // Fallback para modo normal
+        }
+        setDeepActive(false);
+
+        if (deepText) {
+          // Simula resultado estilo sendChat
+          aiResult = {
+            text: deepText,
+            model: {
+              ...(modelToUse ?? { label: 'DEEP (multi-pass)' } as any),
+              label: `DEEP Mode \u2022 ${Math.round(deepText.split(/\s+/).length / 1000)}k palavras`,
+            } as any,
+          } as any;
+        }
+      }
+
+      // Se deep nao rodou (ou falhou), usa sendChat normal
+      if (!aiResult) {
+        aiResult = await sendChat({
+          systemPrompt: enhancedSystemPrompt,
+          userPrompt: userText,
+          maxTokens: Math.max(modelToUse?.maxOutput ?? 32768, 32768),
+          temperature: 0.85,
+          agentId: finalAgent.id,
+          overrideModelId: pendingModelId,
+        });
+      }
+
       // Reset pending override apos envio
       setPendingModelId(undefined);
 
@@ -502,6 +544,7 @@ Tente novamente apos ajustar. Peco desculpas pela interrupcao.`;
           <ClientSelector />
         </div>
         <div className="flex items-center gap-2">
+          <DeepModeToggle />
           <button
             onClick={() => setAutoRouter(!autoRouterEnabled)}
             className={`flex items-center gap-1 px-2 py-1 text-[10px] rounded-md transition-colors ${
@@ -569,7 +612,10 @@ Tente novamente apos ajustar. Peco desculpas pela interrupcao.`;
             clientName={currentClient?.name}
           />
         ))}
-        {streaming && (
+        {/* DEEP MODE PROGRESS */}
+        <DeepProgressIndicator events={deepEvents} active={deepActive} />
+
+        {streaming && !deepActive && (
           <div className="flex items-start gap-3 animate-in fade-in duration-300">
             <div
               className="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-sm relative overflow-hidden"
